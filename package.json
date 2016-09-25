@@ -1,10 +1,18 @@
 {
-  "name": "d3-plot",
+  "name": "d3-axes",
   "version": "0.1.0",
   "description": "D3 plugin to manage pairs of axes.",
-  "main": "index.js",
+  "main": "d3-axes.js",
+  "module": "index",
+  "jsnext:main": "index",
+  "keywords": [
+    "d3",
+    "d3-module",
+    "axis",
+    "data-join"
+  ],
   "scripts": {
-    "prepublish": "NODE_PATH=src browserify . -o d3-axes.js",
+    "prepublish": "NODE_PATH=src browserify index.js -o d3-axes.js",
     "test": "karma start"
   },
   "repository": {
@@ -35,6 +43,7 @@
     "browserify": "^13.1.0",
     "d3-array": "^1.0.1",
     "d3-axis": "^1.0.3",
+    "d3-compose": "^0.1.1",
     "d3-dsv": "^1.0.3",
     "d3-format": "^1.0.2",
     "d3-request": "^1.0.2",

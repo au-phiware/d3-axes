@@ -6,7 +6,7 @@ import { csv } from 'd3-request';
 import { extent } from "d3-array";
 import { line } from "d3-shape";
 import { axes, axesPositionBottom, axesGrid } from 'axes';
-import { compose } from 'compose';
+import { compose } from 'd3-compose';
 
 let x = d => +d.t
   , y = d => +d.v
