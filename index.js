@@ -1,53 +1,59 @@
 import * as d3 from 'd3-selection';
 import { scaleLinear } from 'd3-scale';
 import { axisBottom, axisLeft } from 'd3-axis';
-import { line } from 'd3-shape';
 import { csv } from 'd3-request';
-import { extent } from 'd3-array';
+import { extent } from "d3-array";
+import { line } from "d3-shape";
+import { axes, axesPositionBottom } from 'axes';
+import { compose } from 'compose';
 
-let margin = {top: 20, right: 20, bottom: 30, left: 50};
-let width = 960 - margin.left - margin.right,
-    height = 500 - margin.top - margin.bottom;
+let x = d => +d.t
+  , y = d => +d.v
+  , plot = axes(
+        axisBottom().scale(scaleLinear()),
+        compose(function(selection) {
+          let label = selection.select('.label');
+          
+          if (!label.size()) {
+            label = selection.append('text')
+              .attr('class', 'label');
+          }
+          label
+            .attr('transform', 'rotate(-90)')
+            .attr('y', 6)
+            .attr('dy', '.71em')
+            .style('text-anchor', 'end')
+            .text('Velocity');
+        }, axisLeft().scale(scaleLinear()))
+      )
+      .padding(20, 20, 30, 50)
+      .width(document.documentElement.clientWidth)
+      .height(500)
+      .position(axesPositionBottom)
+  , curve = line()
+    .x(d => plot.x().scale()(x(d)))
+    .y(d => plot.y().scale()(y(d)));
 
-let x = scaleLinear().range([0, width]),
-    y = scaleLinear().range([height, 0]);
-
-let xAxis = axisBottom().scale(x),
-    yAxis = axisLeft().scale(y);
-
-let curve = line()
-        .x(d => x(+d.t))
-        .y(d => y(+d.v));
 
 let svg = d3.select("svg")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-  .append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+      .attr("width", plot.width())
+      .attr("height", plot.height());
 
 csv("data.csv", (error, data) => {
-    if (!data) throw error;
+  if (!data) throw error;
 
-    x.domain(extent(data, d => +d.t));
-    y.domain(extent(data, d => +d.v));
+  plot.domain(
+    extent(data, x),
+    extent(data, y)
+  );
 
-    svg.append('g')
-        .attr('class', 'x axis')
-        .attr('transform', `translate(0,${height})`)
-        .call(xAxis);
+  let curves = plot(svg).selectAll('.curve').data([data]);
 
-    svg.append('g')
-        .attr('class', 'y axis')
-        .call(yAxis)
-    .append('text')
-        .attr('transform', 'rotate(-90)')
-        .attr('y', 6)
-        .attr('dy', '.71em')
-        .style('text-anchor', 'end')
-        .text('Velocity');
+  curves.exit().remove();
 
-    svg.append('path')
-        .datum(data)
-        .attr('class', 'curve')
-        .attr('d', curve);
+  curves.enter()
+      .append('path')
+      .attr('class', 'curve')
+    .merge(curves)
+      .attr('d', curve);
 });

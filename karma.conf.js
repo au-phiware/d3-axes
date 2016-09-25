@@ -19,7 +19,7 @@ module.exports = function(config) {
       'test/**/*Spec.js',
       'index.html',
       'index.css',
-      'bundle.js',
+      'd3-axes.js',
       'data.csv',
 
       // Not served, only included. Will be accessible by `/base/public/...`
