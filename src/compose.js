@@ -3,10 +3,8 @@ const nonEnumerableProps = /^(valueOf|isPrototypeOf|to(Locale)?String|propertyIs
 export function compose(...args) {
   const start = args.length - 1;
   let f = function(...pass) {
-    let i = start;
-    let v = args[i].apply(this, pass);
-    while (i--) v = args[i].call(this, pass[0], v);
-    return v;
+    let i = start + 1;
+    while (i--) args[i].apply(this, pass);
   };
   for (let i = start; i >= 0; i--) {
     let source = args[i];
