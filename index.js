@@ -5,7 +5,7 @@ import { axisBottom, axisLeft } from 'd3-axis';
 import { csv } from 'd3-request';
 import { extent } from "d3-array";
 import { line } from "d3-shape";
-import { axes, axesPositionBottom, axesGrid } from 'axes';
+import { axes, axesPositionBottom, axesGrid } from 'd3-axes';
 import { compose } from 'd3-compose';
 
 let x = d => +d.t
@@ -51,7 +51,6 @@ csv("data.csv", (error, data) => {
     extent(data, x),
     extent(data, y)
   );
-
 
   let curves = svg.transition().duration(900)
       .call(plot)
