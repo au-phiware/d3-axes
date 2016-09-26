@@ -13,7 +13,9 @@
   "scripts": {
     "prepublish": "browserify index.js -o bundle.js",
     "prestart": "npm install",
-    "start": "beefy index.js:bundle.js"
+    "start": "beefy index.js:bundle.js",
+    "preversion": "npm update d3-axes",
+    "version": "npm run prepublish && git add bundle.js"
   },
   "repository": {
     "type": "git",
