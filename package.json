@@ -20,8 +20,8 @@
     "pretest": "rollup -c",
     "test": "tape 'test/**/*-test.js'",
     "preversion": "npm test",
-    "version": "npm run pretest && uglifyjs d3-axes.js -c -m -o d3-axes.min.js && git add d3-axes.js d3-axes.min.js",
-    "postpublish": "git checkout gh-pages && npm update d3-axes && git checkout master && git push && git push --tags"
+    "version": "npm run pretest && uglifyjs d3-axes.js -c -m -o d3-axes.min.js",
+    "postpublish": "git checkout gh-pages && npm version $(npm view d3-axes version) && git checkout master && git push && git push --tags"
   },
   "repository": {
     "type": "git",
