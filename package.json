@@ -9,11 +9,19 @@
     "d3",
     "d3-module",
     "axis",
+    "axes",
+    "chart",
+    "plot",
+    "graph",
     "data-join"
   ],
   "scripts": {
-    "prepublish": "NODE_PATH=src browserify index.js -o d3-axes.js",
-    "test": "karma start"
+    "clean": "rm -f d3-axes.js d3-axes.min.js",
+    "pretest": "rollup -c",
+    "test": "tape 'test/**/*-test.js'",
+    "preversion": "npm test",
+    "version": "npm run pretest && uglifyjs d3-axes.js -c -m -o d3-axes.min.js && git add d3-axes.js d3-axes.min.js",
+    "postpublish": "git checkout gh-pages && npm update d3-axes && git checkout master && git push && git push --tags"
   },
   "repository": {
     "type": "git",
@@ -25,37 +33,13 @@
     "url": "https://github.com/au-phiware/d3-line-chart/issues"
   },
   "homepage": "https://github.com/au-phiware/d3-line-chart#readme",
-  "browserify": {
-    "transform": [
-      [
-        "babelify",
-        {
-          "presets": [
-            "es2015"
-          ]
-        }
-      ]
-    ]
+  "dependencies": {
+    "d3-selection": "^1.0.2"
   },
   "devDependencies": {
-    "babel-preset-es2015": "^6.14.0",
-    "babelify": "^7.3.0",
-    "browserify": "^13.1.0",
-    "d3-array": "^1.0.1",
-    "d3-axis": "^1.0.3",
-    "d3-compose": "^0.1.1",
-    "d3-dsv": "^1.0.3",
-    "d3-format": "^1.0.2",
-    "d3-request": "^1.0.2",
-    "d3-scale": "^1.0.3",
-    "d3-selection": "^1.0.2",
-    "d3-shape": "^1.0.3",
-    "d3-transition": "^1.0.2",
-    "jasmine-core": "^2.5.2",
-    "jquery": "^3.1.0",
-    "karma": "^1.3.0",
-    "karma-chrome-launcher": "^2.0.0",
-    "karma-html2js-preprocessor": "^1.1.0",
-    "karma-jasmine": "^1.0.2"
+    "rollup": "^0.36.0",
+    "rollup-plugin-buble": "^0.14.0",
+    "tape": "^4.6.0",
+    "uglify-js": "^2.7.3"
   }
 }

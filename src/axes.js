@@ -1,5 +1,3 @@
-import * as d3 from "d3-selection";
-
 function translate(context, v) {
   let selection = context.selection ? context.selection() : context
     , x = 0
