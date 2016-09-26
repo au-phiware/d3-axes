@@ -10,8 +10,8 @@ the language of data visualisations, such as axes ([d3-axis][d3-axis]) and maps
 ([d3-geo][d3-geo]).
 The aim of this module is not to replace nor hide any of the above. Instead this
 module manages the relationship between a pair of axes. There are functions to
-position an axis relative to its pair and each axis will be sized in a common
-area.
+position an axis and labels relative to its pair and each axis will be sized in
+a common area.
 Futhermore, there are functions for generating grid lines.
 
 For a demo see: [http://au-phiware.github.io/d3-axes][gh-pages].
