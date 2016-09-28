@@ -23,7 +23,21 @@ var _d3Axes = require('d3-axes');
 
 var _d3Compose = require('d3-compose');
 
+var _d3Wrap = require('d3-wrap');
+
+var _putSelector = require('put-selector');
+
+var put = _interopRequireWildcard(_putSelector);
+
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
+function wrapSelection(selection, selector) {
+  var wrapped = selection.select(selector);
+  if (!wrapped.size()) wrapped = selection.append(function (d) {
+    return put(selector);
+  });
+  return wrapped;
+}
 
 var x = function x(d) {
   return +d.t;
@@ -40,7 +54,19 @@ var x = function x(d) {
     label = selection.append('text').attr('class', 'label');
   }
   label.attr('transform', 'rotate(-90)').attr('y', 6).attr('dy', '.71em').style('text-anchor', 'end').text('Velocity');
-}, yAxis, (0, _d3Axes.axesGrid)(yAxis))).padding(20, 20, 30, 50).width(document.documentElement.clientWidth).height(500).domain([0, 0.1], [-0.01, 0.01]),
+}, yAxis, (0, _d3Wrap.wrap)((0, _d3Axes.axesGrid)(yAxis), function (gridAxis, selection) {
+  for (var _len = arguments.length, args = Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
+    args[_key - 2] = arguments[_key];
+  }
+
+  return gridAxis.apply(undefined, [wrapSelection(selection, 'g.major')].concat(args));
+}), (0, _d3Wrap.wrap)((0, _d3Axes.axesGrid)(yAxis).ticks(50), function (gridAxis, selection) {
+  for (var _len2 = arguments.length, args = Array(_len2 > 2 ? _len2 - 2 : 0), _key2 = 2; _key2 < _len2; _key2++) {
+    args[_key2 - 2] = arguments[_key2];
+  }
+
+  return gridAxis.apply(undefined, [wrapSelection(selection, 'g.minor')].concat(args));
+}))).padding(20, 20, 30, 50).width(document.documentElement.clientWidth).height(500).domain([0, 0.1], [-0.01, 0.01]),
     curve = (0, _d3Shape.line)().x(function (d) {
   return plot.x().scale()(x(d));
 }).y(function (d) {
@@ -63,7 +89,7 @@ plot(svg);
   curves.enter().append('path').attr('class', 'curve').merge(curves).attr('d', curve);
 });
 
-},{"d3-array":2,"d3-axes":3,"d3-axis":4,"d3-compose":5,"d3-request":6,"d3-scale":10,"d3-selection":17,"d3-shape":18,"d3-transition":20}],2:[function(require,module,exports){
+},{"d3-array":2,"d3-axes":3,"d3-axis":4,"d3-compose":5,"d3-request":6,"d3-scale":10,"d3-selection":17,"d3-shape":18,"d3-transition":20,"d3-wrap":26,"put-selector":28}],2:[function(require,module,exports){
 // https://d3js.org/d3-array/ Version 1.0.1. Copyright 2016 Mike Bostock.
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -530,18 +556,29 @@ plot(svg);
 }));
 },{}],3:[function(require,module,exports){
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
-  typeof define === 'function' && define.amd ? define(['exports'], factory) :
-  (factory((global.d3 = global.d3 || {})));
-}(this, (function (exports) { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'd3-selection'], factory) :
+  (factory((global.d3 = global.d3 || {}),global.d3));
+}(this, (function (exports,d3) { 'use strict';
+
+function closestClassed(selection, className) {
+  var closest = selection;
+  while (!closest.classed(className)) {
+    closest = closest.node().parentElement;
+    if (!closest) { return; }
+    closest = d3.select(closest);
+  }
+  return closest;
+}
 
 function translate(context, v) {
   var selection = context.selection ? context.selection() : context
     , x = 0
     , y = 0;
-  if (selection.classed('x axis')) {
+  var closest = closestClassed(selection, 'axis');
+  if (selection.classed('x')) {
     y = +v;
-  } else if (selection.classed('y axis')) {
+  } else if (selection.classed('y')) {
     x = +v;
   } else { return; }
   context.attr('transform', ("translate(" + x + " " + y + ")"));
@@ -569,64 +606,6 @@ function position(_) {
 }
 
 var positionDefault = positionOrigin;
-
-var epsilon = 1e-6;
-
-function center(scale) {
-  var offset = scale.bandwidth() / 2;
-  if (scale.round()) { offset = Math.round(offset); }
-  return function(d) {
-    return scale(d) + offset;
-  };
-}
-
-function identity(scale) {
-  return scale;
-}
-
-function grid(basis) {
-  var tickValues = null;
-  return function grid(context, axis) {
-    var selection = context.selection ? context.selection() : context
-      , scale = basis.scale()
-      , values = tickValues == null ? (scale.ticks ? scale.ticks.apply(scale, basis.tickArguments()) : scale.domain()) : tickValues
-      , range = axis.scale().range()
-      , size = range[1] - range[0]
-      , x, y = selection.classed("y") ? (x = "x", "y") : (x = "y", "x")
-      , position = (range = basis.scale().range(), scale.bandwidth ? center : identity)(scale.copy().range([range[0] + 0.5, range[1] + 0.5]))
-      , line = selection.selectAll(".grid").data(values, scale).order()
-      , lineExit = line.exit()
-      , lineEnter = line.enter().append("line")
-          .attr("class", "grid")
-          .attr(x + "2", size)
-          .attr(y + "1", position)
-          .attr(y + "2", position);
-
-    line = line.merge(lineEnter);
-
-    if (context !== selection) {
-      line = line.transition(context);
-      lineExit = lineExit.transition(context)
-          .attr("opacity", epsilon)
-          .attr(x + "2", size)
-          .attr(y + "1", function(d) { return position(d); })
-          .attr(y + "2", function(d) { return position(d); });
-      lineEnter
-          .attr("opacity", epsilon)
-          .attr(y + "1", function(d) { return (this.parentNode.__grid || position)(d); })
-          .attr(y + "2", function(d) { return (this.parentNode.__grid || position)(d); });
-    }
-
-    lineExit.remove();
-
-    line.attr("opacity", 1)
-        .attr(x + "2", size)
-        .attr(y + "1", position)
-        .attr(y + "2", position);
-
-    selection.each(function() { this.__grid = position; });
-  }
-}
 
 function axes(x, y) {
   var paddingTop = 20
@@ -723,6 +702,83 @@ function axes(x, y) {
   return axes;
 }
 
+var epsilon = 1e-6;
+
+function center(scale) {
+  var offset = scale.bandwidth() / 2;
+  if (scale.round()) { offset = Math.round(offset); }
+  return function(d) {
+    return scale(d) + offset;
+  };
+}
+
+function identity(scale) {
+  return scale;
+}
+
+function grid(basis) {
+  var tickValues = null
+    , tickArguments = null;
+  function grid(context, axis) {
+    var selection = context.selection ? context.selection() : context
+      , scale = basis.scale()
+      , values = tickValues == null ? (scale.ticks ? scale.ticks.apply(scale, tickArguments || basis.tickArguments()) : scale.domain()) : tickValues
+      , range = axis.scale().range()
+      , size = range[1] - range[0]
+      , x, y = closestClassed(selection, 'axis').classed("y") ? (x = "x", "y") : (x = "y", "x")
+      , position = (range = basis.scale().range(), scale.bandwidth ? center : identity)(scale.copy().range([range[0] + 0.5, range[1] + 0.5]))
+      , line = selection.selectAll(".grid").data(values, scale).order()
+      , lineExit = line.exit()
+      , lineEnter = line.enter().append("line")
+          .attr("class", "grid")
+          .attr(x + "2", size)
+          .attr(y + "1", position)
+          .attr(y + "2", position);
+
+    line = line.merge(lineEnter);
+
+    if (context !== selection) {
+      line = line.transition(context);
+      lineExit = lineExit.transition(context)
+          .attr("opacity", epsilon)
+          .attr(x + "2", size)
+          .attr(y + "1", function(d) { return position(d); })
+          .attr(y + "2", function(d) { return position(d); });
+      lineEnter
+          .attr("opacity", epsilon)
+          .attr(y + "1", function(d) { return (this.parentNode.__grid || position)(d); })
+          .attr(y + "2", function(d) { return (this.parentNode.__grid || position)(d); });
+    }
+
+    lineExit.remove();
+
+    line.attr("opacity", 1)
+        .attr(x + "2", size)
+        .attr(y + "1", position)
+        .attr(y + "2", position);
+
+    selection.each(function() { this.__grid = position; });
+  }
+
+  grid.ticks = function() {
+    var args = [], len = arguments.length;
+    while ( len-- ) args[ len ] = arguments[ len ];
+
+    return tickArguments = args, grid;
+  };
+
+  grid.tickArguments = function(_) {
+    return arguments.length ? (tickArguments = _ == null ? [] : slice.call(_), grid) : tickArguments.slice();
+  };
+
+  grid.tickValues = function(_) {
+    return arguments.length ? (tickValues = _ == null ? null : slice.call(_), grid) : tickValues && tickValues.slice();
+  };
+
+  return grid;
+}
+
+exports.axesGrid = grid;
 exports.axes = axes;
 exports.axesPositionBottom = positionStart;
 exports.axesPositionLeft = positionStart;
@@ -730,13 +786,12 @@ exports.axesPositionTop = positionEnd;
 exports.axesPositionRight = positionEnd;
 exports.axesPositionDefault = positionDefault;
 exports.axesPosition = position;
-exports.axesGrid = grid;
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],4:[function(require,module,exports){
+},{"d3-selection":17}],4:[function(require,module,exports){
 // https://d3js.org/d3-axis/ Version 1.0.3. Copyright 2016 Mike Bostock.
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -9078,4 +9133,482 @@ exports.interval = interval$1;
 Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
-},{}]},{},[1]);
+},{}],26:[function(require,module,exports){
+(function (global, factory) {
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+  typeof define === 'function' && define.amd ? define(['exports'], factory) :
+  (factory((global.d3 = global.d3 || {})));
+}(this, (function (exports) { 'use strict';
+
+var nonEnumerableProps = /^(valueOf|isPrototypeOf|to(Locale)?String|propertyIsEnumerable|hasOwnProperty)$/;
+
+function wrap(f, wrapper) {
+  var wrapped = function(context) {
+    for (var i = 0, ii = arguments.length, args = Array(ii + 1); i < ii; i++) {
+      args[i + 1] = arguments[i];
+    }
+    args[0] = function(wrappedContext) {
+      for (var i = 0, ii = arguments.length, args = Array(ii); i < ii; i++) {
+        args[i] = arguments[i];
+      }
+      if (context.selection && wrappedContext !== context && !wrappedContext.selection) {
+        args[0] = wrappedContext.transition(context);
+      }
+      return f.apply(this, args);
+    };
+    return wrapper.apply(this, args);
+  }
+  for (var k in f) {
+    if (!nonEnumerableProps.test(k)) {
+      wrapped[k] = f[k];
+    }
+  }
+  return wrapped;
+}
+
+exports.wrap = wrap;
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+})));
+
+},{}],27:[function(require,module,exports){
+"use strict";
+var put;
+function Element(tag){
+	this.tag = tag;
+}
+// create set of elements with an empty content model, so we now to skip their closing tag
+var emptyElements = {};
+["base", "link", "meta", "hr", "br", "wbr", "img", "embed", "param", "source", "track", "area", "col", "input", "keygen", "command"].forEach(function(tag){
+	emptyElements[tag] = true;
+});
+var prototype = Element.prototype;
+var currentIndentation = '';
+prototype.nodeType = 1;
+prototype.put = function(){
+	var args = [this];
+	args.push.apply(args, arguments);
+	return put.apply(null, args);
+}
+prototype.toString = function(noClose){
+	var tag = this.tag;
+	var emptyElement = emptyElements[tag];
+	if(put.indentation && !noClose){
+		// using pretty printing with indentation
+		var lastIndentation = currentIndentation;
+		currentIndentation += put.indentation;
+		var html = (tag == 'html' ? '<!DOCTYPE html>\n<html' : '\n' + lastIndentation + '<' + tag) +
+			(this.attributes ? this.attributes.join('') : '') + 
+			(this.className ? ' class="' + this.className + '"' : '') + '>' +  
+			(this.children ? this.children.join('') : '') +  
+			(!this.mixed && !emptyElement  && this.children ? '\n' +lastIndentation : '') +
+			(emptyElement ? '' : ('</' + tag + '>'));
+		
+		currentIndentation = lastIndentation;
+		return html;
+	}
+	return (this.tag == 'html' ? '<!DOCTYPE html>\n<html' : '<' + this.tag) +
+		(this.attributes ? this.attributes.join('') : '') + 
+		(this.className ? ' class="' + this.className + '"' : '') + '>' +  
+		(this.children ? this.children.join('') : '') +  
+		((noClose || emptyElement) ? '' : ('</' + tag + '>')); 
+};
+prototype.sendTo = function(stream){
+	if(typeof stream == 'function'){ // write function itself
+		stream = {write: stream, end: stream};
+	}
+	var active = this;
+	var streamIndentation = '';
+	function pipe(element){
+		// TODO: Perhaps consider buffering if it is any faster and having a non-indentation version that is faster
+		var closing = returnTo(this);
+		if(closing){
+			stream.write(closing);
+		}
+		var tag = element.tag;
+		if(element.tag){
+			if(put.indentation){
+				stream.write('\n' + streamIndentation + element.toString(true));
+				streamIndentation += put.indentation;
+			}else{
+				stream.write(element.toString(true));
+			}
+			this.children = true;
+			active = element;
+			element.pipe = pipe;
+		}else{
+			stream.write(element.toString());
+		}
+	}
+	function returnTo(element){
+		var output = '';
+		while(active != element){
+			if(!active){
+				throw new Error("Can not add to an element that has already been streamed");
+			}
+			var tag = active.tag;
+			var emptyElement = emptyElements[tag];
+			if(put.indentation){
+				streamIndentation = streamIndentation.slice(put.indentation.length);
+				if(!emptyElement){
+					output += ((active.mixed || !active.children) ? '' : '\n' + streamIndentation) + '</' + tag + '>';	
+				}
+			}else if(!emptyElement){
+				output += '</' + tag + '>';
+			}
+			active = active.parentNode;
+		}
+		return output;		
+	}
+	pipe.call(this, this);
+	// add on end() function to close all the tags and close the stream
+	this.end = function(leaveStreamOpen){
+		stream[leaveStreamOpen ? 'write' : 'end'](returnTo(this) + '\n</' + this.tag + '>');
+	}
+	return this;
+};
+prototype.children = false;
+prototype.attributes = false;
+prototype.insertBefore = function(child, reference){
+	child.parentNode = this;
+	if(this.pipe){
+		return this.pipe(child);
+		//return this.s(child);
+	}
+	var children = this.children;
+	if(!children){
+		children = this.children = [];
+	}
+	if(reference){
+		for(var i = 0, l = children.length; i < l; i++){
+			if(reference == children[i]){
+				child.nextSibling = reference;
+				if(i > 0){
+					children[i-1].nextSibling = child;
+				}
+				return children.splice(i, 0, child);
+			}
+		}
+	}
+	if(children.length > 0){
+		children[children.length-1].nextSibling = child;
+	}
+	children.push(child);
+};
+prototype.appendChild = function(child){
+	if(typeof child == "string"){
+		this.mixed = true;
+	}
+	if(this.pipe){
+		return this.pipe(child);
+	}
+	var children = this.children;
+	if(!children){
+		children = this.children = [];
+	}
+	children.push(child);
+};
+prototype.setAttribute = function(name, value, escape){
+	var attributes = this.attributes; 
+	if(!attributes){
+		attributes = this.attributes = [];
+	}
+	attributes.push(' ' + name + '="' + value + '"');
+};
+prototype.removeAttribute = function(name, value){
+	var attributes = this.attributes; 
+	if(!attributes){
+		return;
+	}
+	var match = ' ' + name + '=', matchLength = match.length;
+	for(var i = 0, l = attributes.length; i < l; i++){
+		if(attributes[i].slice(0, matchLength) == match){
+			return attributes.splice(i, 1);
+		}
+	}
+};
+Object.defineProperties(prototype, {
+	innerHTML: {
+		get: function(){
+			return this.children.join('');
+		},
+		set: function(value){
+			this.mixed = true;
+			if(this.pipe){
+				return this.pipe(value);
+			}
+			this.children = [value];
+		}
+	}
+});
+function DocumentFragment(){
+}
+DocumentFragment.prototype = new Element();
+DocumentFragment.prototype.toString = function(){
+	return this.children ? this.children.join('') : '';
+};
+
+var lessThanRegex = /</g, ampersandRegex = /&/g;
+module.exports = function(putModule, putFactory){
+	put = putModule.exports = putFactory({
+	// setup a document for string-based HTML creation, using our classes 
+		createElement: function(tag){
+			return new Element(tag);
+		},
+		createElementNS: function(uri, tag){
+			return new Element(namespacePrefixes[uri] + ':' + tag);
+		},
+		createTextNode: function(value){
+			return (typeof value == 'string' ? value : ('' + value)).replace(lessThanRegex, "&lt;").replace(ampersandRegex, "&amp;");
+		},
+		createDocumentFragment: function(){
+			return new DocumentFragment(); 
+		}
+	}, { // fragment heuristic, don't use this fragments here, it only slows things down
+		test: function(){
+			return false;
+		}
+	});
+	put.indentation = '  ';
+	put.Page = function(stream){
+		return put('html').sendTo(stream);
+	};
+	var namespacePrefixes = {};
+	var addNamespace = put.addNamespace;
+	put.addNamespace = function(name, uri){
+		namespacePrefixes[uri] = name;
+		addNamespace(name, uri);
+	}
+};
+},{}],28:[function(require,module,exports){
+(function(define){
+var forDocument, fragmentFasterHeuristic = /[-+,> ]/; // if it has any of these combinators, it is probably going to be faster with a document fragment 
+define([], forDocument = function(doc, newFragmentFasterHeuristic){
+"use strict";
+	// module:
+	//		put-selector/put
+	// summary:
+	//		This module defines a fast lightweight function for updating and creating new elements
+	//		terse, CSS selector-based syntax. The single function from this module creates
+	// 		new DOM elements and updates existing elements. See README.md for more information.
+	//	examples:
+	//		To create a simple div with a class name of "foo":
+	//		|	put("div.foo");
+	fragmentFasterHeuristic = newFragmentFasterHeuristic || fragmentFasterHeuristic;
+	var selectorParse = /(?:\s*([-+ ,<>]))?\s*(\.|!\.?|#)?([-\w\u00A0-\uFFFF%$|]+)?(?:\[([^\]=]+)=?['"]?([^\]'"]*)['"]?\])?/g,
+		undefined, namespaceIndex, namespaces = false,
+		doc = doc || document,
+		ieCreateElement = typeof doc.createElement == "object"; // telltale sign of the old IE behavior with createElement that does not support later addition of name 
+	function insertTextNode(element, text){
+		element.appendChild(doc.createTextNode(text));
+	}
+	function put(topReferenceElement){
+		var fragment, lastSelectorArg, nextSibling, referenceElement, current,
+			args = arguments,
+			returnValue = args[0]; // use the first argument as the default return value in case only an element is passed in
+		function insertLastElement(){
+			// we perform insertBefore actions after the element is fully created to work properly with 
+			// <input> tags in older versions of IE that require type attributes
+			//	to be set before it is attached to a parent.
+			// We also handle top level as a document fragment actions in a complex creation 
+			// are done on a detached DOM which is much faster
+			// Also if there is a parse error, we generally error out before doing any DOM operations (more atomic) 
+			if(current && referenceElement && current != referenceElement){
+				(referenceElement == topReferenceElement &&
+					// top level, may use fragment for faster access 
+					(fragment || 
+						// fragment doesn't exist yet, check to see if we really want to create it 
+						(fragment = fragmentFasterHeuristic.test(argument) && doc.createDocumentFragment()))
+							// any of the above fails just use the referenceElement  
+							 ? fragment : referenceElement).
+								insertBefore(current, nextSibling || null); // do the actual insertion
+			}
+		}
+		for(var i = 0; i < args.length; i++){
+			var argument = args[i];
+			if(typeof argument == "object"){
+				lastSelectorArg = false;
+				if(argument instanceof Array){
+					// an array
+					current = doc.createDocumentFragment();
+					for(var key = 0; key < argument.length; key++){
+						current.appendChild(put(argument[key]));
+					}
+					argument = current;
+				}
+				if(argument.nodeType){
+					current = argument;
+					insertLastElement();
+					referenceElement = argument;
+					nextSibling = 0;
+				}else{
+					// an object hash
+					for(var key in argument){
+						current[key] = argument[key];
+					}				
+				}
+			}else if(lastSelectorArg){
+				// a text node should be created
+				// take a scalar value, use createTextNode so it is properly escaped
+				// createTextNode is generally several times faster than doing an escaped innerHTML insertion: http://jsperf.com/createtextnode-vs-innerhtml/2
+				lastSelectorArg = false;
+				insertTextNode(current, argument);
+			}else{
+				if(i < 1){
+					// if we are starting with a selector, there is no top element
+					topReferenceElement = null;
+				}
+				lastSelectorArg = true;
+				var leftoverCharacters = argument.replace(selectorParse, function(t, combinator, prefix, value, attrName, attrValue){
+					if(combinator){
+						// insert the last current object
+						insertLastElement();
+						if(combinator == '-' || combinator == '+'){
+							// + or - combinator, 
+							// TODO: add support for >- as a means of indicating before the first child?
+							referenceElement = (nextSibling = (current || referenceElement)).parentNode;
+							current = null;
+							if(combinator == "+"){
+								nextSibling = nextSibling.nextSibling;
+							}// else a - operator, again not in CSS, but obvious in it's meaning (create next element before the current/referenceElement)
+						}else{
+							if(combinator == "<"){
+								// parent combinator (not really in CSS, but theorized, and obvious in it's meaning)
+								referenceElement = current = (current || referenceElement).parentNode;
+							}else{
+								if(combinator == ","){
+									// comma combinator, start a new selector
+									referenceElement = topReferenceElement;
+								}else if(current){
+									// else descendent or child selector (doesn't matter, treated the same),
+									referenceElement = current;
+								}
+								current = null;
+							}
+							nextSibling = 0;
+						}
+						if(current){
+							referenceElement = current;
+						}
+					}
+					var tag = !prefix && value;
+					if(tag || (!current && (prefix || attrName))){
+						if(tag == "$"){
+							// this is a variable to be replaced with a text node
+							insertTextNode(referenceElement, args[++i]);
+						}else{
+							// Need to create an element
+							tag = tag || put.defaultTag;
+							var ieInputName = ieCreateElement && args[i +1] && args[i +1].name;
+							if(ieInputName){
+								// in IE, we have to use the crazy non-standard createElement to create input's that have a name 
+								tag = '<' + tag + ' name="' + ieInputName + '">';
+							}
+							// we swtich between creation methods based on namespace usage
+							current = namespaces && ~(namespaceIndex = tag.indexOf('|')) ?
+								doc.createElementNS(namespaces[tag.slice(0, namespaceIndex)], tag.slice(namespaceIndex + 1)) : 
+								doc.createElement(tag);
+						}
+					}
+					if(prefix){
+						if(value == "$"){
+							value = args[++i];
+						}
+						if(prefix == "#"){
+							// #id was specified
+							current.id = value;
+						}else{
+							// we are in the className addition and removal branch
+							var currentClassName = current.className;
+							// remove the className (needed for addition or removal)
+							// see http://jsperf.com/remove-class-name-algorithm/2 for some tests on this
+							var removed = currentClassName && (" " + currentClassName + " ").replace(" " + value + " ", " ");
+							if(prefix == "."){
+								// addition, add the className
+								current.className = currentClassName ? (removed + value).substring(1) : value;
+							}else{
+								// else a '!' class removal
+								if(argument == "!"){
+									var parentNode;
+									// special signal to delete this element
+									if(ieCreateElement){
+										// use the ol' innerHTML trick to get IE to do some cleanup
+										put("div", current, '<').innerHTML = "";
+									}else if(parentNode = current.parentNode){ // intentional assigment
+										// use a faster, and more correct (for namespaced elements) removal (http://jsperf.com/removechild-innerhtml)
+										parentNode.removeChild(current);
+									}
+								}else{
+									// we already have removed the class, just need to trim
+									removed = removed.substring(1, removed.length - 1);
+									// only assign if it changed, this can save a lot of time
+									if(removed != currentClassName){
+										current.className = removed;
+									}
+								}
+							}
+							// CSS class removal
+						}
+					}
+					if(attrName){
+						if(attrValue == "$"){
+							attrValue = args[++i];
+						}
+						// [name=value]
+						if(attrName == "style"){
+							// handle the special case of setAttribute not working in old IE
+							current.style.cssText = attrValue;
+						}else{
+							var method = attrName.charAt(0) == "!" ? (attrName = attrName.substring(1)) && 'removeAttribute' : 'setAttribute';
+							attrValue = attrValue === '' ? attrName : attrValue;
+							// determine if we need to use a namespace
+							namespaces && ~(namespaceIndex = attrName.indexOf('|')) ?
+								current[method + "NS"](namespaces[attrName.slice(0, namespaceIndex)], attrName.slice(namespaceIndex + 1), attrValue) :
+								current[method](attrName, attrValue);
+						}
+					}
+					return '';
+				});
+				if(leftoverCharacters){
+					throw new SyntaxError("Unexpected char " + leftoverCharacters + " in " + argument);
+				}
+				insertLastElement();
+				referenceElement = returnValue = current || referenceElement;
+			}
+		}
+		if(topReferenceElement && fragment){
+			// we now insert the top level elements for the fragment if it exists
+			topReferenceElement.appendChild(fragment);
+		}
+		return returnValue;
+	}
+	put.addNamespace = function(name, uri){
+		if(doc.createElementNS){
+			(namespaces || (namespaces = {}))[name] = uri;
+		}else{
+			// for old IE
+			doc.namespaces.add(name, uri);
+		}
+	};
+	put.defaultTag = "div";
+	put.forDocument = forDocument;
+	return put;
+});
+})(function(id, deps, factory){
+	factory = factory || deps;
+	if(typeof define === "function"){
+		// AMD loader
+		define([], function(){
+			return factory();
+		});
+	}else if(typeof window == "undefined"){
+		// server side JavaScript, probably (hopefully) NodeJS
+		require("./node-html")(module, factory);
+	}else{
+		// plain script in a browser
+		put = factory();
+	}
+});
+
+},{"./node-html":27}]},{},[1]);

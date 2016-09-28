@@ -7,6 +7,21 @@ import { extent } from "d3-array";
 import { line } from "d3-shape";
 import { axes, axesPositionBottom, axesGrid } from 'd3-axes';
 import { compose } from 'd3-compose';
+import { wrap } from 'd3-wrap';
+
+//import 'put-selector';
+//put.addNamespace('svg', d3.namespaces.svg);
+
+function wrapSelection(selection, selector) {
+  let wrapped = selection.select(selector);
+  if (!wrapped.size()) {
+    //wrapped = selection.append(d => put('svg|' + selector));
+    let [ tag, className ] = selector.split('.', 2);
+    wrapped = selection.append(tag)
+      .attr('class', className);
+  }
+  return wrapped;
+}
 
 let x = d => +d.t
   , y = d => +d.v
@@ -14,20 +29,29 @@ let x = d => +d.t
   , yAxis = axisLeft().scale(scaleLinear())
   , plot = axes(
         compose(axesPositionBottom, xAxis),
-        compose(function(selection) {
-          let label = selection.select('.label');
-          
-          if (!label.size()) {
-            label = selection.append('text')
-              .attr('class', 'label');
-          }
-          label
-            .attr('transform', 'rotate(-90)')
-            .attr('y', 6)
-            .attr('dy', '.71em')
-            .style('text-anchor', 'end')
-            .text('Velocity');
-        }, yAxis, axesGrid(yAxis))
+        compose(
+          function(selection) {
+            let label = selection.select('.label');
+            
+            if (!label.size()) {
+              label = selection.append('text')
+                .attr('class', 'label');
+            }
+            label
+              .attr('transform', 'rotate(-90)')
+              .attr('y', 6)
+              .attr('dy', '.71em')
+              .style('text-anchor', 'end')
+              .text('Velocity');
+          },
+          yAxis,
+          wrap(axesGrid(yAxis), (gridAxis, selection, ...args) => {
+            return gridAxis.apply(this, [wrapSelection(selection, 'g.major')].concat(args));
+          }),
+          wrap(axesGrid(yAxis).ticks(50), (gridAxis, selection, ...args) => {
+            return gridAxis.apply(this, [wrapSelection(selection, 'g.minor')].concat(args));
+          })
+        )
       )
       .padding(20, 20, 30, 50)
       .width(document.documentElement.clientWidth)
