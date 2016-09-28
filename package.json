@@ -19,14 +19,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/au-phiware/d3-plot.git"
+    "url": "git+https://github.com/au-phiware/d3-axes.git"
   },
   "author": "Corin Lawson <corin@phiware.com.au>",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/au-phiware/d3-line-chart/issues"
+    "url": "https://github.com/au-phiware/d3-axes/issues"
   },
-  "homepage": "https://github.com/au-phiware/d3-line-chart#readme",
+  "homepage": "https://github.com/au-phiware/d3-axes#readme",
   "browserify": {
     "transform": [
       [
