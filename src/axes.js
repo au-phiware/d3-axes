@@ -136,4 +136,3 @@ export { positionStart as axesPositionBottom, positionStart as axesPositionLeft 
 export { positionEnd as axesPositionTop, positionEnd as axesPositionRight };
 export { positionDefault as axesPositionDefault };
 export { position as axesPosition };
-export { grid as axesGrid };
