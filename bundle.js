@@ -690,236 +690,241 @@ Object.defineProperty(exports, '__esModule', { value: true });
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection')) :
   typeof define === 'function' && define.amd ? define(['exports', 'd3-selection'], factory) :
-  (factory((global.d3 = global.d3 || {}),global.d3));
+  (factory((global.d3 = {}),global.d3));
 }(this, (function (exports,d3) { 'use strict';
 
-function closestClassed(selection, className) {
-  var closest = selection;
-  while (!closest.classed(className)) {
-    closest = closest.node().parentElement;
-    if (!closest) { return; }
-    closest = d3.select(closest);
-  }
-  return closest;
-}
-
-function translate(context, v) {
-  var selection = context.selection ? context.selection() : context
-    , x = 0
-    , y = 0;
-  var closest = closestClassed(selection, 'axis');
-  if (selection.classed('x')) {
-    y = +v;
-  } else if (selection.classed('y')) {
-    x = +v;
-  } else { return; }
-  context.attr('transform', ("translate(" + x + " " + y + ")"));
-}
-
-function positionStart(selection, axis) {
-  translate(selection, axis.scale().range()[0]);
-}
-
-function positionEnd(selection, axis) {
-  translate(selection, axis.scale().range()[1]);
-}
-
-function positionOrigin(selection, axis) {
-  translate(selection, axis.scale()(0));
-}
-
-function position(_) {
-  var n = +_;
-  if (isNaN(n))
-    { return positionDefault; }
-  return function(selection, axis) {
-    translate(selection, axis.scale()(n));
-  };
-}
-
-var positionDefault = positionOrigin;
-
-function axes(x, y) {
-  var paddingTop = 20
-    , paddingRight = 20
-    , paddingBottom = 20
-    , paddingLeft = 20
-    , height = 0
-    , width = 0;
-
-  function axes(context) {
-    var selection = context.selection ? context.selection() : context
-      , v = height - paddingTop - paddingBottom
-      , h = width - paddingRight - paddingLeft;
-
-    x.scale().range([0, h]);
-    y.scale().range([v, 0]);
-
-    var g = selection.select("g.axes");
-    if (!g.size()) {
-      g = selection.append("g")
-        .attr('class', 'axes');
+  function closestClassed(selection, className) {
+    var closest = selection;
+    while (!closest.classed(className)) {
+      closest = closest.node().parentElement;
+      if (!closest) { return; }
+      closest = d3.select(closest);
     }
-
-    if (context !== selection) {
-      g = g.transition(context);
-    }
-
-    g.attr("transform", "translate(" + paddingLeft + "," + paddingTop + ")");
-    
-    var xAxis = g.select(".x.axis");
-    if (!xAxis.size()) {
-      xAxis = g.append('g')
-        .attr('class', 'x axis');
-    }
-    xAxis.call(x, y);
-
-    var yAxis = g.select(".y.axis");
-    if (!yAxis.size()) {
-      yAxis = g.append('g')
-        .attr('class', 'y axis');
-    }
-    yAxis.call(y, x);
+    return closest;
   }
 
-  axes.x = function(_) {
-    return arguments.length ? (x = _, axes) : x;
-  };
-
-  axes.y = function(_) {
-    return arguments.length ? (y = _, axes) : y;
-  };
-
-  axes.padding = function(v, h, b, l) {
-    switch (arguments.length) {
-      case 0:
-        return {
-          "top": paddingTop,
-          "right": paddingRight,
-          "bottom": paddingBottom,
-          "left": paddingLeft
-        };
-      case 1:
-        h = b = l = v;
-        break;
-      case 2:
-        var assign;
-    (assign = [ v, h ], b = assign[0], l = assign[1]);
-        break;
-      case 3:
-        l = h;
-        break;
-    }
-    var assign$1;
-    (assign$1 = [ v, h, b, l ], paddingTop = assign$1[0], paddingRight = assign$1[1], paddingBottom = assign$1[2], paddingLeft = assign$1[3]);
-    return axes;
-  };
-
-  axes.height = function(_) {
-    return arguments.length ? (height = _, axes) : height;
-  };
-
-  axes.width = function(_) {
-    return arguments.length ? (width = _, axes) : width;
-  };
-
-  axes.domain = function(_x, _y) {
-    if (!arguments.length)
-      { return [x.scale().domain(), y.scale().domain()]; }
-    if (_x) { x.scale().domain(_x); }
-    if (_y) { y.scale().domain(_y); }
-    return axes;
-  };
-
-  return axes;
-}
-
-var epsilon = 1e-6;
-
-function center(scale) {
-  var offset = scale.bandwidth() / 2;
-  if (scale.round()) { offset = Math.round(offset); }
-  return function(d) {
-    return scale(d) + offset;
-  };
-}
-
-function identity(scale) {
-  return scale;
-}
-
-function grid(basis) {
-  var tickValues = null
-    , tickArguments = null;
-  function grid(context, axis) {
+  function translate(context, v) {
     var selection = context.selection ? context.selection() : context
-      , scale = basis.scale()
-      , values = tickValues == null ? (scale.ticks ? scale.ticks.apply(scale, tickArguments || basis.tickArguments()) : scale.domain()) : tickValues
-      , range = axis.scale().range()
-      , size = range[1] - range[0]
-      , x, y = closestClassed(selection, 'axis').classed("y") ? (x = "x", "y") : (x = "y", "x")
-      , position = (range = basis.scale().range(), scale.bandwidth ? center : identity)(scale.copy().range([range[0] + 0.5, range[1] + 0.5]))
-      , line = selection.selectAll(".grid").data(values, scale).order()
-      , lineExit = line.exit()
-      , lineEnter = line.enter().append("line")
-          .attr("class", "grid")
+      , x = 0
+      , y = 0
+      ;
+    var closest = closestClassed(selection, 'axis');
+    if (selection.classed('x')) {
+      y = +v;
+    } else if (selection.classed('y')) {
+      x = +v;
+    } else { return; }
+    context.attr('transform', ("translate(" + x + " " + y + ")"));
+  }
+
+  function positionStart(selection, axis) {
+    translate(selection, axis.scale().range()[0]);
+  }
+
+  function positionEnd(selection, axis) {
+    translate(selection, axis.scale().range()[1]);
+  }
+
+  function positionOrigin(selection, axis) {
+    translate(selection, axis.scale()(0));
+  }
+
+  function position(_) {
+    var n = +_;
+    if (isNaN(n))
+      { return positionDefault; }
+    return function(selection, axis) {
+      translate(selection, axis.scale()(n));
+    };
+  }
+
+  var positionDefault = positionOrigin;
+
+  function axes(x, y) {
+    var paddingTop = 20
+      , paddingRight = 20
+      , paddingBottom = 20
+      , paddingLeft = 20
+      , height = 0
+      , width = 0
+      ;
+
+    function axes(context) {
+      var selection = context.selection ? context.selection() : context
+        , v = height - paddingTop - paddingBottom
+        , h = width - paddingRight - paddingLeft
+        ;
+
+      x.scale().range([0, h]);
+      y.scale().range([v, 0]);
+
+      var g = selection.select("g.axes");
+      if (!g.size()) {
+        g = selection.append("g")
+          .attr('class', 'axes');
+      }
+
+      if (context !== selection) {
+        g = g.transition(context);
+      }
+
+      g.attr("transform", "translate(" + paddingLeft + "," + paddingTop + ")");
+      
+      var xAxis = g.select(".x.axis");
+      if (!xAxis.size()) {
+        xAxis = g.append('g')
+          .attr('class', 'x axis');
+      }
+      xAxis.call(x, y);
+
+      var yAxis = g.select(".y.axis");
+      if (!yAxis.size()) {
+        yAxis = g.append('g')
+          .attr('class', 'y axis');
+      }
+      yAxis.call(y, x);
+    }
+
+    axes.x = function(_) {
+      return arguments.length ? (x = _, axes) : x;
+    };
+
+    axes.y = function(_) {
+      return arguments.length ? (y = _, axes) : y;
+    };
+
+    axes.padding = function(v, h, b, l) {
+      var assign, assign$1;
+
+      switch (arguments.length) {
+        case 0:
+          return {
+            "top": paddingTop,
+            "right": paddingRight,
+            "bottom": paddingBottom,
+            "left": paddingLeft
+          };
+        case 1:
+          h = b = l = v;
+          break;
+        case 2:
+          (assign = [ v, h ], b = assign[0], l = assign[1]);
+          break;
+        case 3:
+          l = h;
+          break;
+      }
+      (assign$1 = [ v, h, b, l ], paddingTop = assign$1[0], paddingRight = assign$1[1], paddingBottom = assign$1[2], paddingLeft = assign$1[3]);
+      return axes;
+    };
+
+    axes.height = function(_) {
+      return arguments.length ? (height = _, axes) : height;
+    };
+
+    axes.width = function(_) {
+      return arguments.length ? (width = _, axes) : width;
+    };
+
+    axes.domain = function(_x, _y) {
+      if (!arguments.length)
+        { return [x.scale().domain(), y.scale().domain()]; }
+      if (_x) { x.scale().domain(_x); }
+      if (_y) { y.scale().domain(_y); }
+      return axes;
+    };
+
+    return axes;
+  }
+
+  var epsilon = 1e-6;
+
+  function center(scale) {
+    var offset = scale.bandwidth() / 2;
+    if (scale.round()) { offset = Math.round(offset); }
+    return function(d) {
+      return scale(d) + offset;
+    };
+  }
+
+  function identity(scale) {
+    return scale;
+  }
+
+  function grid(basis) {
+    var tickValues = null
+      , tickArguments = null
+      ;
+    function grid(context, axis) {
+      var selection = context.selection ? context.selection() : context
+        , scale = basis.scale()
+        , values = tickValues == null ? (scale.ticks ? scale.ticks.apply(scale, tickArguments || basis.tickArguments()) : scale.domain()) : tickValues
+        , range = axis.scale().range()
+        , size = range[1] - range[0]
+        , x, y = closestClassed(selection, 'axis').classed("y") ? (x = "x", "y") : (x = "y", "x")
+        , position = (range = basis.scale().range(), scale.bandwidth ? center : identity)(scale.copy().range([range[0] + 0.5, range[1] + 0.5]))
+        , line = selection.selectAll(".grid").data(values, scale).order()
+        , lineExit = line.exit()
+        , lineEnter = line.enter().append("line")
+            .attr("class", "grid")
+            .attr(x + "2", size)
+            .attr(y + "1", position)
+            .attr(y + "2", position)
+        ;
+
+      line = line.merge(lineEnter);
+
+      if (context !== selection) {
+        line = line.transition(context);
+        lineExit = lineExit.transition(context)
+            .attr("opacity", epsilon)
+            .attr(x + "2", size)
+            .attr(y + "1", function(d) { return position(d); })
+            .attr(y + "2", function(d) { return position(d); });
+        lineEnter
+            .attr("opacity", epsilon)
+            .attr(y + "1", function(d) { return (this.parentNode.__grid || position)(d); })
+            .attr(y + "2", function(d) { return (this.parentNode.__grid || position)(d); });
+      }
+
+      lineExit.remove();
+
+      line.attr("opacity", 1)
           .attr(x + "2", size)
           .attr(y + "1", position)
           .attr(y + "2", position);
 
-    line = line.merge(lineEnter);
-
-    if (context !== selection) {
-      line = line.transition(context);
-      lineExit = lineExit.transition(context)
-          .attr("opacity", epsilon)
-          .attr(x + "2", size)
-          .attr(y + "1", function(d) { return position(d); })
-          .attr(y + "2", function(d) { return position(d); });
-      lineEnter
-          .attr("opacity", epsilon)
-          .attr(y + "1", function(d) { return (this.parentNode.__grid || position)(d); })
-          .attr(y + "2", function(d) { return (this.parentNode.__grid || position)(d); });
+      selection.each(function() { this.__grid = position; });
     }
 
-    lineExit.remove();
+    grid.ticks = function() {
+      var args = [], len = arguments.length;
+      while ( len-- ) args[ len ] = arguments[ len ];
 
-    line.attr("opacity", 1)
-        .attr(x + "2", size)
-        .attr(y + "1", position)
-        .attr(y + "2", position);
+      return tickArguments = args, grid;
+    };
 
-    selection.each(function() { this.__grid = position; });
+    grid.tickArguments = function(_) {
+      return arguments.length ? (tickArguments = _ == null ? [] : slice.call(_), grid) : tickArguments.slice();
+    };
+
+    grid.tickValues = function(_) {
+      return arguments.length ? (tickValues = _ == null ? null : slice.call(_), grid) : tickValues && tickValues.slice();
+    };
+
+    return grid;
   }
 
-  grid.ticks = function() {
-    var args = [], len = arguments.length;
-    while ( len-- ) args[ len ] = arguments[ len ];
+  exports.axes = axes;
+  exports.axesPositionBottom = positionStart;
+  exports.axesPositionLeft = positionStart;
+  exports.axesPositionTop = positionEnd;
+  exports.axesPositionRight = positionEnd;
+  exports.axesPositionDefault = positionDefault;
+  exports.axesPosition = position;
+  exports.axesGrid = grid;
 
-    return tickArguments = args, grid;
-  };
-
-  grid.tickArguments = function(_) {
-    return arguments.length ? (tickArguments = _ == null ? [] : slice.call(_), grid) : tickArguments.slice();
-  };
-
-  grid.tickValues = function(_) {
-    return arguments.length ? (tickValues = _ == null ? null : slice.call(_), grid) : tickValues && tickValues.slice();
-  };
-
-  return grid;
-}
-
-exports.axes = axes;
-exports.axesPositionBottom = positionStart;
-exports.axesPositionLeft = positionStart;
-exports.axesPositionTop = positionEnd;
-exports.axesPositionRight = positionEnd;
-exports.axesPositionDefault = positionDefault;
-exports.axesPosition = position;
-exports.axesGrid = grid;
-
-Object.defineProperty(exports, '__esModule', { value: true });
+  Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
