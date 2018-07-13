@@ -2,7 +2,7 @@ import * as d3 from 'd3-selection';
 import * as d3transition from 'd3-transition';
 import { scaleLinear } from 'd3-scale';
 import { axisBottom, axisLeft } from 'd3-axis';
-import { csv } from 'd3-request';
+import { csv } from 'd3-fetch';
 import { extent } from "d3-array";
 import { line } from "d3-shape";
 import { axes, axesPositionBottom, axesGrid } from 'd3-axes';
@@ -68,9 +68,7 @@ let svg = d3.select("svg")
 
 plot(svg);
 
-csv("data.csv", (error, data) => {
-  if (!data) throw error;
-
+csv("data.csv").then(data => {
   plot.domain(
     extent(data, x),
     extent(data, y)
