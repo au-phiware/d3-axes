@@ -1,3 +1,4 @@
+import { compose } from 'd3-compose';
 import { compose as scaler } from './scaler';
 
 let count = 0;
@@ -10,7 +11,7 @@ export function shape(path) {
     , exit = $ => $.remove()
     , enter = $ => $
     , merge = $ => $.attr("d", path)
-    ;
+  ;
   function shape(axes, context, ...args) {
     if (path.x) {
       path.x(scaler(axes.x().scale(), path.x()));
@@ -93,4 +94,30 @@ export function shape(path) {
   }
 
   return shape;
+}
+
+export function symbol(path) {
+  let x = d => d[0]
+    , y = d => d[1]
+  ;
+
+  path.x = function(_) {
+    return arguments.length ? (x = _, path) : x;
+  }
+
+  path.y = function(_) {
+    return arguments.length ? (y = _, path) : y;
+  }
+
+  let $ = shape(path);
+  return $.merge(
+    compose(
+      $ => $.attr('transform', d => `translate(${
+        path.x()(d)
+      } ${
+        path.y()(d)
+      })`)
+    , $.merge()
+    )
+  );
 }
