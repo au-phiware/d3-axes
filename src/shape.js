@@ -20,7 +20,7 @@ export function shape(path) {
       path.y(scaler(axes.y().scale(), path.y()));
     }
 
-    context = axes.apply(this, [context].concat(args));
+    axes.apply(this, [context].concat(args));
 
     let shouldTransition = !!context.selection;
     let selection = shouldTransition ? context.selection() : context;

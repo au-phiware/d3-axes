@@ -93,8 +93,6 @@ export function axes(x, y) {
         .attr('class', 'y axis')
     }
     yAxis.call(y, x);
-
-    return context;
   }
 
   axes.x = function(_) {
