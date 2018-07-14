@@ -770,7 +770,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
           .attr("width", h)
           .attr("height", v);
 
-      if (context !== selection) {
+      if (context !== selection && g.transition) {
         g = g.transition(context);
       }
 
@@ -886,7 +886,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
       line = line.merge(lineEnter);
 
-      if (context !== selection) {
+      if (context !== selection && line.transition && lineExit.transition) {
         line = line.transition(context);
         lineExit = lineExit.transition(context)
             .attr("opacity", epsilon)
@@ -984,16 +984,18 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
       g = g.selectAll('path.shape').data(data);
       var $update = g;
-      if (shouldTransition) {
+      if (shouldTransition && $update.transition) {
         $update = $update.transition(context);
       }
       $update.call(shape.update());
-      if (shouldTransition) {
+      var updateTransition = context;
+      if ($update.selection) {
+        updateTransition = $update;
         $update = $update.selection();
       }
 
       var $exit = g.exit();
-      if (shouldTransition) {
+      if (shouldTransition && $exit.transition) {
         $exit = $exit.transition(context);
       }
       $exit.call(shape.exit());
@@ -1004,8 +1006,8 @@ Object.defineProperty(exports, '__esModule', { value: true });
         .call(shape.enter());
 
       $update = $enter.merge($update);
-      if (shouldTransition) {
-        $update = $update.transition(context);
+      if (shouldTransition && $update.transition) {
+        $update = $update.transition(updateTransition);
       }
       $update.call(shape.merge());
     }
