@@ -26,7 +26,11 @@ body {
     display: none;
 }
 
-.curve {
+#axes-0 .shapes {
+    clip-path: url(#axes-0-clip-path);
+}
+
+.shape {
     fill: none;
     stroke: steelblue;
     stroke-width: 1.5px;
