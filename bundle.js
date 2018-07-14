@@ -92,7 +92,7 @@ plot(svg);
   svg.transition().duration(900).call(plot);
 });
 
-},{"d3-array":2,"d3-axes":22,"d3-axis":3,"d3-compose":6,"d3-fetch":10,"d3-scale":14,"d3-selection":15,"d3-shape":16,"d3-transition":20,"d3-wrap":21}],2:[function(require,module,exports){
+},{"d3-array":2,"d3-axes":3,"d3-axis":4,"d3-compose":7,"d3-fetch":11,"d3-scale":15,"d3-selection":16,"d3-shape":17,"d3-transition":21,"d3-wrap":22}],2:[function(require,module,exports){
 // https://d3js.org/d3-array/ Version 1.2.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -685,6 +685,405 @@ Object.defineProperty(exports, '__esModule', { value: true });
 })));
 
 },{}],3:[function(require,module,exports){
+(function (global, factory) {
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-compose')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'd3-selection', 'd3-compose'], factory) :
+  (factory((global.d3 = {}),global.d3,global.d3Compose));
+}(this, (function (exports,d3,d3Compose) { 'use strict';
+
+  function closestClassed(selection, className) {
+    var closest = selection;
+    while (!closest.classed(className)) {
+      closest = closest.node().parentElement;
+      if (!closest) { return; }
+      closest = d3.select(closest);
+    }
+    return closest;
+  }
+
+  function translate(context, v) {
+    var selection = context.selection ? context.selection() : context
+      , x = 0
+      , y = 0
+      ;
+    var closest = closestClassed(selection, 'axis');
+    if (selection.classed('x')) {
+      y = +v;
+    } else if (selection.classed('y')) {
+      x = +v;
+    } else { return; }
+    context.attr('transform', ("translate(" + x + " " + y + ")"));
+  }
+
+  function positionStart(selection, axis) {
+    translate(selection, axis.scale().range()[0]);
+  }
+
+  function positionEnd(selection, axis) {
+    translate(selection, axis.scale().range()[1]);
+  }
+
+  function positionOrigin(selection, axis) {
+    translate(selection, axis.scale()(0));
+  }
+
+  function position(_) {
+    var n = +_;
+    if (isNaN(n))
+      { return positionDefault; }
+    return function(selection, axis) {
+      translate(selection, axis.scale()(n));
+    };
+  }
+
+  var positionDefault = positionOrigin;
+
+  var count = 0;
+
+  function axes(x, y) {
+    var paddingTop = 20
+      , paddingRight = 20
+      , paddingBottom = 20
+      , paddingLeft = 20
+      , height = 0
+      , width = 0
+      , index = count++
+      , id = null
+      ;
+
+    function axes(context) {
+      var selection = context.selection ? context.selection() : context
+        , v = height - paddingTop - paddingBottom
+        , h = width - paddingRight - paddingLeft
+        ;
+
+      x.scale().range([0, h]);
+      y.scale().range([v, 0]);
+
+      var id = axes.id();
+      var g = selection.select("g#" + id);
+      if (!g.size()) {
+        g = selection.append("g")
+          .attr("id", id)
+          .attr("class", "axes");
+        g.append("clipPath")
+          .attr("id", id + "-clip-path")
+          .append("rect");
+      }
+      g.select("#" + id + "-clip-path")
+        .select("rect")
+          .attr("width", h)
+          .attr("height", v);
+
+      if (context !== selection && g.transition) {
+        g = g.transition(context);
+      }
+
+      g.attr("transform", "translate(" + paddingLeft + "," + paddingTop + ")");
+      
+      var xAxis = g.select(".x.axis");
+      if (!xAxis.size()) {
+        xAxis = g.append('g')
+          .attr('class', 'x axis');
+      }
+      xAxis.call(x, y);
+
+      var yAxis = g.select(".y.axis");
+      if (!yAxis.size()) {
+        yAxis = g.append('g')
+          .attr('class', 'y axis');
+      }
+      yAxis.call(y, x);
+    }
+
+    axes.x = function(_) {
+      return arguments.length ? (x = _, axes) : x;
+    };
+
+    axes.y = function(_) {
+      return arguments.length ? (y = _, axes) : y;
+    };
+
+    axes.padding = function(v, h, b, l) {
+      var assign, assign$1;
+
+      switch (arguments.length) {
+        case 0:
+          return {
+            "top": paddingTop,
+            "right": paddingRight,
+            "bottom": paddingBottom,
+            "left": paddingLeft
+          };
+        case 1:
+          h = b = l = v;
+          break;
+        case 2:
+          (assign = [ v, h ], b = assign[0], l = assign[1]);
+          break;
+        case 3:
+          l = h;
+          break;
+      }
+      (assign$1 = [ v, h, b, l ], paddingTop = assign$1[0], paddingRight = assign$1[1], paddingBottom = assign$1[2], paddingLeft = assign$1[3]);
+      return axes;
+    };
+
+    axes.height = function(_) {
+      return arguments.length ? (height = _, axes) : height;
+    };
+
+    axes.width = function(_) {
+      return arguments.length ? (width = _, axes) : width;
+    };
+
+    axes.domain = function(_x, _y) {
+      if (!arguments.length)
+        { return [x.scale().domain(), y.scale().domain()]; }
+      if (_x) { x.scale().domain(_x); }
+      if (_y) { y.scale().domain(_y); }
+      return axes;
+    };
+
+    axes.id = function(_) {
+      return arguments.length ? (id = _, axes) : (id || 'axes-' + index);
+    };
+
+    return axes;
+  }
+
+  var epsilon = 1e-6;
+
+  function center(scale) {
+    var offset = scale.bandwidth() / 2;
+    if (scale.round()) { offset = Math.round(offset); }
+    return function(d) {
+      return scale(d) + offset;
+    };
+  }
+
+  function identity(scale) {
+    return scale;
+  }
+
+  function grid(basis) {
+    var tickValues = null
+      , tickArguments = null
+      ;
+    function grid(context, axis) {
+      var selection = context.selection ? context.selection() : context
+        , scale = basis.scale()
+        , values = tickValues == null ? (scale.ticks ? scale.ticks.apply(scale, tickArguments || basis.tickArguments()) : scale.domain()) : tickValues
+        , range = axis.scale().range()
+        , size = range[1] - range[0]
+        , x, y = closestClassed(selection, 'axis').classed("y") ? (x = "x", "y") : (x = "y", "x")
+        , position = (range = basis.scale().range(), scale.bandwidth ? center : identity)(scale.copy().range([range[0] + 0.5, range[1] + 0.5]))
+        , line = selection.selectAll(".grid").data(values, scale).order()
+        , lineExit = line.exit()
+        , lineEnter = line.enter().append("line")
+            .attr("class", "grid")
+            .attr(x + "2", size)
+            .attr(y + "1", position)
+            .attr(y + "2", position)
+        ;
+
+      line = line.merge(lineEnter);
+
+      if (context !== selection && line.transition && lineExit.transition) {
+        line = line.transition(context);
+        lineExit = lineExit.transition(context)
+            .attr("opacity", epsilon)
+            .attr(x + "2", size)
+            .attr(y + "1", function(d) { return position(d); })
+            .attr(y + "2", function(d) { return position(d); });
+        lineEnter
+            .attr("opacity", epsilon)
+            .attr(y + "1", function(d) { return (this.parentNode.__grid || position)(d); })
+            .attr(y + "2", function(d) { return (this.parentNode.__grid || position)(d); });
+      }
+
+      lineExit.remove();
+
+      line.attr("opacity", 1)
+          .attr(x + "2", size)
+          .attr(y + "1", position)
+          .attr(y + "2", position);
+
+      selection.each(function() { this.__grid = position; });
+    }
+
+    grid.ticks = function() {
+      var args = [], len = arguments.length;
+      while ( len-- ) args[ len ] = arguments[ len ];
+
+      return tickArguments = args, grid;
+    };
+
+    grid.tickArguments = function(_) {
+      return arguments.length ? (tickArguments = _ == null ? [] : slice.call(_), grid) : tickArguments.slice();
+    };
+
+    grid.tickValues = function(_) {
+      return arguments.length ? (tickValues = _ == null ? null : slice.call(_), grid) : tickValues && tickValues.slice();
+    };
+
+    return grid;
+  }
+
+  function compose(scale, accessor) {
+    if (accessor.scale) {
+      return accessor.scale(scale);
+    }
+
+    var f = function() {
+      var args = [], len = arguments.length;
+      while ( len-- ) args[ len ] = arguments[ len ];
+
+      return scale.call(this, accessor.apply(this, args));
+    };
+
+    f.scale = function(_) {
+      return arguments.length ? (scale = _, f) : scale;
+    };
+    return f;
+  }
+
+  var count$1 = 0;
+
+  function shape(path) {
+    var data = []
+      , index = count$1++
+      , id = null
+      , update = function ($) { return $; }
+      , exit = function ($) { return $.remove(); }
+      , enter = function ($) { return $; }
+      , merge = function ($) { return $.attr("d", path); }
+    ;
+    function shape(axes, context) {
+      var args = [], len = arguments.length - 2;
+      while ( len-- > 0 ) args[ len ] = arguments[ len + 2 ];
+
+      if (path.x) {
+        path.x(compose(axes.x().scale(), path.x()));
+      }
+      if (path.y) {
+        path.y(compose(axes.y().scale(), path.y()));
+      }
+
+      axes.apply(this, [context].concat(args));
+
+      var shouldTransition = !!context.selection;
+      var selection = shouldTransition ? context.selection() : context;
+      selection = selection.select('.axes');
+
+      var id = shape.id();
+      var g = selection
+        .select('g#' + id);
+      if (g.empty()) {
+        g = selection.append('g')
+          .attr('id', id)
+          .attr('class', 'shapes');
+      }
+
+      g = g.selectAll('path.shape').data(data);
+      var $update = g;
+      if (shouldTransition && $update.transition) {
+        $update = $update.transition(context);
+      }
+      $update.call(shape.update());
+      var updateTransition = context;
+      if ($update.selection) {
+        updateTransition = $update;
+        $update = $update.selection();
+      }
+
+      var $exit = g.exit();
+      if (shouldTransition && $exit.transition) {
+        $exit = $exit.transition(context);
+      }
+      $exit.call(shape.exit());
+
+      var $enter = g.enter()
+        .append("path")
+        .attr('class', 'shape')
+        .call(shape.enter());
+
+      $update = $enter.merge($update);
+      if (shouldTransition && $update.transition) {
+        $update = $update.transition(updateTransition);
+      }
+      $update.call(shape.merge());
+    }
+
+    shape.path = function(_) {
+      return arguments.length ? (path = _, shape) : path;
+    };
+
+    shape.data = function(_) {
+      return arguments.length ? (data = _, shape) : data;
+    };
+
+    shape.id = function(_) {
+      return arguments.length ? (id = _, shape) : (id || 'axes-shape-' + index);
+    };
+
+    shape.update = function(_) {
+      return arguments.length ? (update = _, shape) : update;
+    };
+
+    shape.exit = function(_) {
+      return arguments.length ? (exit = _, shape) : exit;
+    };
+
+    shape.enter = function(_) {
+      return arguments.length ? (enter = _, shape) : enter;
+    };
+
+    shape.merge = function(_) {
+      return arguments.length ? (merge = _, shape) : merge;
+    };
+
+    return shape;
+  }
+
+  function symbol(path) {
+    var x = function (d) { return d[0]; }
+      , y = function (d) { return d[1]; }
+    ;
+
+    path.x = function(_) {
+      return arguments.length ? (x = _, path) : x;
+    };
+
+    path.y = function(_) {
+      return arguments.length ? (y = _, path) : y;
+    };
+
+    var $ = shape(path);
+    return $.merge(
+      d3Compose.compose(
+        function ($) { return $.attr('transform', function (d) { return ("translate(" + (path.x()(d)) + " " + (path.y()(d)) + ")"); }); }
+      , $.merge()
+      )
+    );
+  }
+
+  exports.axes = axes;
+  exports.axesPositionBottom = positionStart;
+  exports.axesPositionLeft = positionStart;
+  exports.axesPositionTop = positionEnd;
+  exports.axesPositionRight = positionEnd;
+  exports.axesPositionDefault = positionDefault;
+  exports.axesPosition = position;
+  exports.axesGrid = grid;
+  exports.axesShape = shape;
+  exports.axesSymbol = symbol;
+
+  Object.defineProperty(exports, '__esModule', { value: true });
+
+})));
+
+},{"d3-compose":7,"d3-selection":16}],4:[function(require,module,exports){
 // https://d3js.org/d3-axis/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -879,7 +1278,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 // https://d3js.org/d3-collection/ Version 1.0.4. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -1098,7 +1497,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 // https://d3js.org/d3-color/ Version 1.2.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -1649,7 +2048,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
   typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -1690,7 +2089,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 // https://d3js.org/d3-dispatch/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -1787,7 +2186,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 // https://d3js.org/d3-dsv/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -1951,7 +2350,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 // https://d3js.org/d3-ease/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -2212,7 +2611,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 // https://d3js.org/d3-fetch/ Version 1.1.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dsv')) :
@@ -2316,7 +2715,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dsv":8}],11:[function(require,module,exports){
+},{"d3-dsv":9}],12:[function(require,module,exports){
 // https://d3js.org/d3-format/ Version 1.3.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -2640,7 +3039,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 // https://d3js.org/d3-interpolate/ Version 1.2.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-color')) :
@@ -3197,7 +3596,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":5}],13:[function(require,module,exports){
+},{"d3-color":6}],14:[function(require,module,exports){
 // https://d3js.org/d3-path/ Version 1.0.5. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -3340,7 +3739,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 // https://d3js.org/d3-scale/ Version 2.1.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array'), require('d3-collection'), require('d3-interpolate'), require('d3-format'), require('d3-time'), require('d3-time-format')) :
@@ -4243,7 +4642,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":2,"d3-collection":4,"d3-format":11,"d3-interpolate":12,"d3-time":18,"d3-time-format":17}],15:[function(require,module,exports){
+},{"d3-array":2,"d3-collection":5,"d3-format":12,"d3-interpolate":13,"d3-time":19,"d3-time-format":18}],16:[function(require,module,exports){
 // https://d3js.org/d3-selection/ Version 1.3.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -5240,7 +5639,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 // https://d3js.org/d3-shape/ Version 1.2.0. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-path')) :
@@ -7177,7 +7576,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-path":13}],17:[function(require,module,exports){
+},{"d3-path":14}],18:[function(require,module,exports){
 // https://d3js.org/d3-time-format/ Version 2.1.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-time')) :
@@ -7867,7 +8266,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-time":18}],18:[function(require,module,exports){
+},{"d3-time":19}],19:[function(require,module,exports){
 // https://d3js.org/d3-time/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -8254,7 +8653,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 // https://d3js.org/d3-timer/ Version 1.0.7. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -8405,7 +8804,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 // https://d3js.org/d3-transition/ Version 1.1.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-dispatch'), require('d3-timer'), require('d3-interpolate'), require('d3-color'), require('d3-ease')) :
@@ -9194,7 +9593,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":5,"d3-dispatch":7,"d3-ease":9,"d3-interpolate":12,"d3-selection":15,"d3-timer":19}],21:[function(require,module,exports){
+},{"d3-color":6,"d3-dispatch":8,"d3-ease":10,"d3-interpolate":13,"d3-selection":16,"d3-timer":20}],22:[function(require,module,exports){
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
   typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -9243,407 +9642,4 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],22:[function(require,module,exports){
-(function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-compose')) :
-  typeof define === 'function' && define.amd ? define(['exports', 'd3-selection', 'd3-compose'], factory) :
-  (factory((global.d3 = {}),global.d3,global.d3Compose));
-}(this, (function (exports,d3,d3Compose) { 'use strict';
-
-  function closestClassed(selection, className) {
-    var closest = selection;
-    while (!closest.classed(className)) {
-      closest = closest.node().parentElement;
-      if (!closest) { return; }
-      closest = d3.select(closest);
-    }
-    return closest;
-  }
-
-  function translate(context, v) {
-    var selection = context.selection ? context.selection() : context
-      , x = 0
-      , y = 0
-      ;
-    var closest = closestClassed(selection, 'axis');
-    if (selection.classed('x')) {
-      y = +v;
-    } else if (selection.classed('y')) {
-      x = +v;
-    } else { return; }
-    context.attr('transform', ("translate(" + x + " " + y + ")"));
-  }
-
-  function positionStart(selection, axis) {
-    translate(selection, axis.scale().range()[0]);
-  }
-
-  function positionEnd(selection, axis) {
-    translate(selection, axis.scale().range()[1]);
-  }
-
-  function positionOrigin(selection, axis) {
-    translate(selection, axis.scale()(0));
-  }
-
-  function position(_) {
-    var n = +_;
-    if (isNaN(n))
-      { return positionDefault; }
-    return function(selection, axis) {
-      translate(selection, axis.scale()(n));
-    };
-  }
-
-  var positionDefault = positionOrigin;
-
-  var count = 0;
-
-  function axes(x, y) {
-    var paddingTop = 20
-      , paddingRight = 20
-      , paddingBottom = 20
-      , paddingLeft = 20
-      , height = 0
-      , width = 0
-      , index = count++
-      , id = null
-      ;
-
-    function axes(context) {
-      var selection = context.selection ? context.selection() : context
-        , v = height - paddingTop - paddingBottom
-        , h = width - paddingRight - paddingLeft
-        ;
-
-      x.scale().range([0, h]);
-      y.scale().range([v, 0]);
-
-      var id = axes.id();
-      var g = selection.select("g#" + id);
-      if (!g.size()) {
-        g = selection.append("g")
-          .attr("id", id)
-          .attr("class", "axes");
-        g.append("clipPath")
-          .attr("id", id + "-clip-path")
-          .append("rect");
-      }
-      g.select("#" + id + "-clip-path")
-        .select("rect")
-          .attr("width", h)
-          .attr("height", v);
-
-      if (context !== selection && g.transition) {
-        g = g.transition(context);
-      }
-
-      g.attr("transform", "translate(" + paddingLeft + "," + paddingTop + ")");
-      
-      var xAxis = g.select(".x.axis");
-      if (!xAxis.size()) {
-        xAxis = g.append('g')
-          .attr('class', 'x axis');
-      }
-      xAxis.call(x, y);
-
-      var yAxis = g.select(".y.axis");
-      if (!yAxis.size()) {
-        yAxis = g.append('g')
-          .attr('class', 'y axis');
-      }
-      yAxis.call(y, x);
-    }
-
-    axes.x = function(_) {
-      return arguments.length ? (x = _, axes) : x;
-    };
-
-    axes.y = function(_) {
-      return arguments.length ? (y = _, axes) : y;
-    };
-
-    axes.padding = function(v, h, b, l) {
-      var assign, assign$1;
-
-      switch (arguments.length) {
-        case 0:
-          return {
-            "top": paddingTop,
-            "right": paddingRight,
-            "bottom": paddingBottom,
-            "left": paddingLeft
-          };
-        case 1:
-          h = b = l = v;
-          break;
-        case 2:
-          (assign = [ v, h ], b = assign[0], l = assign[1]);
-          break;
-        case 3:
-          l = h;
-          break;
-      }
-      (assign$1 = [ v, h, b, l ], paddingTop = assign$1[0], paddingRight = assign$1[1], paddingBottom = assign$1[2], paddingLeft = assign$1[3]);
-      return axes;
-    };
-
-    axes.height = function(_) {
-      return arguments.length ? (height = _, axes) : height;
-    };
-
-    axes.width = function(_) {
-      return arguments.length ? (width = _, axes) : width;
-    };
-
-    axes.domain = function(_x, _y) {
-      if (!arguments.length)
-        { return [x.scale().domain(), y.scale().domain()]; }
-      if (_x) { x.scale().domain(_x); }
-      if (_y) { y.scale().domain(_y); }
-      return axes;
-    };
-
-    axes.id = function(_) {
-      return arguments.length ? (id = _, axes) : (id || 'axes-' + index);
-    };
-
-    return axes;
-  }
-
-  var epsilon = 1e-6;
-
-  function center(scale) {
-    var offset = scale.bandwidth() / 2;
-    if (scale.round()) { offset = Math.round(offset); }
-    return function(d) {
-      return scale(d) + offset;
-    };
-  }
-
-  function identity(scale) {
-    return scale;
-  }
-
-  function grid(basis) {
-    var tickValues = null
-      , tickArguments = null
-      ;
-    function grid(context, axis) {
-      var selection = context.selection ? context.selection() : context
-        , scale = basis.scale()
-        , values = tickValues == null ? (scale.ticks ? scale.ticks.apply(scale, tickArguments || basis.tickArguments()) : scale.domain()) : tickValues
-        , range = axis.scale().range()
-        , size = range[1] - range[0]
-        , x, y = closestClassed(selection, 'axis').classed("y") ? (x = "x", "y") : (x = "y", "x")
-        , position = (range = basis.scale().range(), scale.bandwidth ? center : identity)(scale.copy().range([range[0] + 0.5, range[1] + 0.5]))
-        , line = selection.selectAll(".grid").data(values, scale).order()
-        , lineExit = line.exit()
-        , lineEnter = line.enter().append("line")
-            .attr("class", "grid")
-            .attr(x + "2", size)
-            .attr(y + "1", position)
-            .attr(y + "2", position)
-        ;
-
-      line = line.merge(lineEnter);
-
-      if (context !== selection && line.transition && lineExit.transition) {
-        line = line.transition(context);
-        lineExit = lineExit.transition(context)
-            .attr("opacity", epsilon)
-            .attr(x + "2", size)
-            .attr(y + "1", function(d) { return position(d); })
-            .attr(y + "2", function(d) { return position(d); });
-        lineEnter
-            .attr("opacity", epsilon)
-            .attr(y + "1", function(d) { return (this.parentNode.__grid || position)(d); })
-            .attr(y + "2", function(d) { return (this.parentNode.__grid || position)(d); });
-      }
-
-      lineExit.remove();
-
-      line.attr("opacity", 1)
-          .attr(x + "2", size)
-          .attr(y + "1", position)
-          .attr(y + "2", position);
-
-      selection.each(function() { this.__grid = position; });
-    }
-
-    grid.ticks = function() {
-      var args = [], len = arguments.length;
-      while ( len-- ) args[ len ] = arguments[ len ];
-
-      return tickArguments = args, grid;
-    };
-
-    grid.tickArguments = function(_) {
-      return arguments.length ? (tickArguments = _ == null ? [] : slice.call(_), grid) : tickArguments.slice();
-    };
-
-    grid.tickValues = function(_) {
-      return arguments.length ? (tickValues = _ == null ? null : slice.call(_), grid) : tickValues && tickValues.slice();
-    };
-
-    return grid;
-  }
-
-  function compose(scale, accessor) {
-    if (accessor.scale) {
-      return accessor.scale(scale);
-    }
-
-    var f = function() {
-      var args = [], len = arguments.length;
-      while ( len-- ) args[ len ] = arguments[ len ];
-
-      return scale.call(this, accessor.apply(this, args));
-    };
-
-    f.scale = function(_) {
-      return arguments.length ? (scale = _, f) : scale;
-    };
-    return f;
-  }
-
-  var count$1 = 0;
-
-  function shape(path) {
-    var data = []
-      , index = count$1++
-      , id = null
-      , update = function ($) { return $; }
-      , exit = function ($) { return $.remove(); }
-      , enter = function ($) { return $; }
-      , merge = function ($) { return $.attr("d", path); }
-    ;
-    function shape(axes, context) {
-      var args = [], len = arguments.length - 2;
-      while ( len-- > 0 ) args[ len ] = arguments[ len + 2 ];
-
-      if (path.x) {
-        path.x(compose(axes.x().scale(), path.x()));
-      }
-      if (path.y) {
-        path.y(compose(axes.y().scale(), path.y()));
-      }
-
-      axes.apply(this, [context].concat(args));
-
-      var shouldTransition = !!context.selection;
-      var selection = shouldTransition ? context.selection() : context;
-      selection = selection.select('.axes');
-
-      var id = shape.id();
-      var g = selection
-        .select('g#' + id);
-      if (g.empty()) {
-        g = selection.append('g')
-          .attr('id', id)
-          .attr('class', 'shapes');
-      }
-
-      g = g.selectAll('path.shape').data(data);
-      var $update = g;
-      if (shouldTransition && $update.transition) {
-        $update = $update.transition(context);
-      }
-      $update.call(shape.update());
-      var updateTransition = context;
-      if ($update.selection) {
-        updateTransition = $update;
-        $update = $update.selection();
-      }
-
-      var $exit = g.exit();
-      if (shouldTransition && $exit.transition) {
-        $exit = $exit.transition(context);
-      }
-      $exit.call(shape.exit());
-
-      var $enter = g.enter()
-        .append("path")
-        .attr('class', 'shape')
-        .call(shape.enter());
-
-      $update = $enter.merge($update);
-      if (shouldTransition && $update.transition) {
-        $update = $update.transition(updateTransition);
-      }
-      $update.call(shape.merge());
-    }
-
-    shape.path = function(_) {
-      return arguments.length ? (path = _, shape) : path;
-    };
-
-    shape.data = function(_) {
-      return arguments.length ? (data = _, shape) : data;
-    };
-
-    shape.id = function(_) {
-      return arguments.length ? (id = _, shape) : (id || 'axes-shape-' + index);
-    };
-
-    shape.update = function(_) {
-      return arguments.length ? (update = _, shape) : update;
-    };
-
-    shape.exit = function(_) {
-      return arguments.length ? (exit = _, shape) : exit;
-    };
-
-    shape.enter = function(_) {
-      return arguments.length ? (enter = _, shape) : enter;
-    };
-
-    shape.merge = function(_) {
-      return arguments.length ? (merge = _, shape) : merge;
-    };
-
-    return shape;
-  }
-
-  function symbol(path) {
-    var x = function (d) { return d[0]; }
-      , y = function (d) { return d[1]; }
-    ;
-
-    path.x = function(_) {
-      return arguments.length ? (x = _, path) : x;
-    };
-
-    path.y = function(_) {
-      return arguments.length ? (y = _, path) : y;
-    };
-
-    var $ = shape(path);
-    return $.merge(
-      d3Compose.compose(
-        function ($) { return $.attr('transform', function (d) { return ("translate(" + (path.x()(d)) + " " + (path.y()(d)) + ")"); }); }
-      , $.merge()
-      )
-    );
-  }
-
-  exports.axes = axes;
-  exports.axesPositionBottom = positionStart;
-  exports.axesPositionLeft = positionStart;
-  exports.axesPositionTop = positionEnd;
-  exports.axesPositionRight = positionEnd;
-  exports.axesPositionDefault = positionDefault;
-  exports.axesPosition = position;
-  exports.axesGrid = grid;
-  exports.axesShape = shape;
-  exports.axesSymbol = symbol;
-
-  Object.defineProperty(exports, '__esModule', { value: true });
-
-})));
-
-},{"d3-compose":23,"d3-selection":24}],23:[function(require,module,exports){
-arguments[4][6][0].apply(exports,arguments)
-},{"dup":6}],24:[function(require,module,exports){
-arguments[4][15][0].apply(exports,arguments)
-},{"dup":15}]},{},[1]);
+},{}]},{},[1]);

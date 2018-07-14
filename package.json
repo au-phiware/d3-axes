@@ -1,6 +1,6 @@
 {
   "name": "d3-axes-demo",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "D3 plugin to manage pairs of axes.",
   "main": "index.js",
   "jsnext:main": "index",
@@ -15,7 +15,7 @@
     "prestart": "npm install",
     "start": "beefy index.js:bundle.js",
     "preversion": "npm update d3-axes",
-    "version": "npm run prepublish && git add bundle.js"
+    "version": "npm install && git add bundle.js package.json package-lock.json"
   },
   "repository": {
     "type": "git",
