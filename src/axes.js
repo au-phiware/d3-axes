@@ -37,6 +37,8 @@ function position(_) {
 
 const positionDefault = positionOrigin;
 
+let count = 0;
+
 export function axes(x, y) {
   let paddingTop = 20
     , paddingRight = 20
@@ -44,6 +46,8 @@ export function axes(x, y) {
     , paddingLeft = 20
     , height = 0
     , width = 0
+    , index = count++
+    , id = null
     ;
 
   function axes(context) {
@@ -55,11 +59,20 @@ export function axes(x, y) {
     x.scale().range([0, h]);
     y.scale().range([v, 0]);
 
-    let g = selection.select("g.axes");
+    let id = axes.id();
+    let g = selection.select("g#" + id);
     if (!g.size()) {
       g = selection.append("g")
-        .attr('class', 'axes');
+        .attr("id", id)
+        .attr("class", "axes");
+      g.append("clipPath")
+        .attr("id", id + "-clip-path")
+        .append("rect");
     }
+    g.select("#" + id + "-clip-path")
+      .select("rect")
+        .attr("width", h)
+        .attr("height", v);
 
     if (context !== selection) {
       g = g.transition(context);
@@ -130,6 +143,10 @@ export function axes(x, y) {
     if (_y) y.scale().domain(_y);
     return axes;
   };
+
+  axes.id = function(_) {
+    return arguments.length ? (id = _, axes) : (id || 'axes-' + index);
+  }
 
   return axes;
 }
