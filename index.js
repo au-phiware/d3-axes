@@ -5,3 +5,4 @@ export {
   axesPositionDefault, axesPosition
 } from './src/axes';
 export { grid as axesGrid } from './src/grid';
+export { shape as axesShape } from './src/shape';
