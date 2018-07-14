@@ -74,7 +74,7 @@ export function axes(x, y) {
         .attr("width", h)
         .attr("height", v);
 
-    if (context !== selection) {
+    if (context !== selection && g.transition) {
       g = g.transition(context);
     }
 

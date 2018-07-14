@@ -36,16 +36,18 @@ export function shape(path) {
 
     g = g.selectAll('path.shape').data(data);
     let $update = g;
-    if (shouldTransition) {
+    if (shouldTransition && $update.transition) {
       $update = $update.transition(context);
     }
     $update.call(shape.update());
-    if (shouldTransition) {
+    let updateTransition = context;
+    if ($update.selection) {
+      updateTransition = $update;
       $update = $update.selection();
     }
 
     let $exit = g.exit();
-    if (shouldTransition) {
+    if (shouldTransition && $exit.transition) {
       $exit = $exit.transition(context);
     }
     $exit.call(shape.exit());
@@ -56,8 +58,8 @@ export function shape(path) {
       .call(shape.enter());
 
     $update = $enter.merge($update)
-    if (shouldTransition) {
-      $update = $update.transition(context);
+    if (shouldTransition && $update.transition) {
+      $update = $update.transition(updateTransition);
     }
     $update.call(shape.merge());
   }

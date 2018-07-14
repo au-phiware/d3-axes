@@ -37,7 +37,7 @@ export function grid(basis) {
 
     line = line.merge(lineEnter);
 
-    if (context !== selection) {
+    if (context !== selection && line.transition && lineExit.transition) {
       line = line.transition(context);
       lineExit = lineExit.transition(context)
           .attr("opacity", epsilon)
