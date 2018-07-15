@@ -854,8 +854,6 @@ Object.defineProperty(exports, '__esModule', { value: true });
     return axes;
   }
 
-  var epsilon = 1e-6;
-
   function center(scale) {
     var offset = scale.bandwidth() / 2;
     if (scale.round()) { offset = Math.round(offset); }
@@ -864,11 +862,17 @@ Object.defineProperty(exports, '__esModule', { value: true });
     };
   }
 
-  function identity(scale) {
-    return scale;
+  function gridLine(x, y, size, pos, opacity, next) {
+    return function ($) { return $.attr("opacity", opacity)
+      .attr(x + "2", size)
+      .call(next ? function ($) { return $.each(function() { pos.set(this, next); }); } : function ($){ return $; })
+      .attr(y + "1", function(d) { return pos.get(this)(d) })
+      .attr(y + "2", function(d) { return pos.get(this)(d) }); }
   }
 
   function grid(basis) {
+    var position = d3.local();
+
     var tickValues = null
       , tickArguments = null
       ;
@@ -877,41 +881,32 @@ Object.defineProperty(exports, '__esModule', { value: true });
         , scale = basis.scale()
         , values = tickValues == null ? (scale.ticks ? scale.ticks.apply(scale, tickArguments || basis.tickArguments()) : scale.domain()) : tickValues
         , range = axis.scale().range()
-        , size = range[1] - range[0]
-        , x, y = closestClassed(selection, 'axis').classed("y") ? (x = "x", "y") : (x = "y", "x")
-        , position = (range = basis.scale().range(), scale.bandwidth ? center : identity)(scale.copy().range([range[0] + 0.5, range[1] + 0.5]))
-        , line = selection.selectAll(".grid").data(values, scale).order()
-        , lineExit = line.exit()
-        , lineEnter = line.enter().append("line")
-            .attr("class", "grid")
-            .attr(x + "2", size)
-            .attr(y + "1", position)
-            .attr(y + "2", position)
-        ;
-
-      line = line.merge(lineEnter);
-
-      if (context !== selection && line.transition && lineExit.transition) {
-        line = line.transition(context);
-        lineExit = lineExit.transition(context)
-            .attr("opacity", epsilon)
-            .attr(x + "2", size)
-            .attr(y + "1", function(d) { return position(d); })
-            .attr(y + "2", function(d) { return position(d); });
-        lineEnter
-            .attr("opacity", epsilon)
-            .attr(y + "1", function(d) { return (this.parentNode.__grid || position)(d); })
-            .attr(y + "2", function(d) { return (this.parentNode.__grid || position)(d); });
+        , size = range[1] - range[0];
+      var ref = closestClassed(selection, 'axis').classed("y")
+          ? ["x", "y"]
+          : ["y", "x"];
+      var x = ref[0];
+      var y = ref[1];
+      var line = d3Gup.gup()
+            .pre(function ($) { return ($.selection ? $.selection() : $)
+              .order(); })
+            .exit(function ($) { return $
+              .call(gridLine(x, y, size, position, 0, p))
+              .remove(); })
+            .enter(function ($) { return $.append("line")
+              .attr("class", "grid")
+              .call(gridLine(x, y, size, position, 0)); })
+            .post(function ($) { return $.call(gridLine(x, y, size, position, 1, p)); })
+      ;
+      range = basis.scale().range();
+      var p = scale.copy().range([range[0] + 0.5, range[1] + 0.5]);
+      if (scale.bandwidth) { p = center(p); }
+      if (!position.get(context.node())) {
+        position.set(context.node(), p);
       }
-
-      lineExit.remove();
-
-      line.attr("opacity", 1)
-          .attr(x + "2", size)
-          .attr(y + "1", position)
-          .attr(y + "2", position);
-
-      selection.each(function() { this.__grid = position; });
+      context.selectAll(".grid")
+        .call(line, values, scale);
+      position.set(context.node(), p);
     }
 
     grid.ticks = function() {
