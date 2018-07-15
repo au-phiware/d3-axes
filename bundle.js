@@ -3018,21 +3018,29 @@ Object.defineProperty(exports, '__esModule', { value: true });
       , enter = null
       , post = null
     ;
-    function gup(data, _) {
-      if (arguments.length > 1) {
-        return gup.call(this, _)(data);
+    function gup(data) {
+      var more = [], len = arguments.length - 1;
+      while ( len-- > 0 ) more[ len ] = arguments[ len + 1 ];
+
+      if (data.constructor.toString().substr(9,10) === "Selection(" ||
+        data.constructor.toString().substr(9,11) === "Transition(") {
+        return gup.apply(this, more)(data);
       }
-      return function(context) {
+      return function() {
+        var args = [], len = arguments.length;
+        while ( len-- ) args[ len ] = arguments[ len ];
+
+        var context = args.shift();
         var shouldTransition = !!context.selection;
         var selection = shouldTransition ? context.selection() : context;
 
-        var $pre = selection.data(data);
+        var $pre = selection.data(data, more[0]);
         if (pre && pre != empty) {
           var preT = $pre;
           if (shouldTransition && $pre.transition) {
             preT = $pre.transition(context);
           }
-          preT.call(pre);
+          preT.call.apply(preT, [ pre ].concat( args ));
         }
 
         if (exit && exit != empty) {
@@ -3040,12 +3048,12 @@ Object.defineProperty(exports, '__esModule', { value: true });
           if (shouldTransition && $exit.transition) {
             $exit = $exit.transition(context);
           }
-          $exit.call(exit);
+          $exit.call.apply($exit, [ exit ].concat( args ));
         }
 
         var $enter = $pre.enter();
         if (enter && enter != empty) {
-          $enter = enter.call(this, $enter);
+          $enter = enter.call.apply(enter, [ this, $enter ].concat( args ));
         }
 
         if (post && post != empty) {
@@ -3053,7 +3061,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
           if (shouldTransition && $post.transition) {
             $post = $post.transition(context);
           }
-          $post.call(post);
+          $post.call.apply($post, [ post ].concat( args ));
         }
       }
     }
@@ -3080,7 +3088,12 @@ Object.defineProperty(exports, '__esModule', { value: true });
       var args = [], len = arguments.length;
       while ( len-- ) args[ len ] = arguments[ len ];
       switch (arguments.length) {
-        case 0: return [pre || empty, exit || empty, enter || empty, post || empty];
+        case 0: return [
+          pre || empty,
+          exit || empty,
+          enter || empty,
+          post || empty
+        ];
         case 1:
           (assign = args, pre = assign[0]);
           break;
@@ -3099,8 +3112,57 @@ Object.defineProperty(exports, '__esModule', { value: true });
     return gup;
   }
 
+  var nonEnumerableProps = /^(valueOf|isPrototypeOf|to(Locale)?String|propertyIsEnumerable|hasOwnProperty)$/;
+
+  function comp(fns, name) {
+    fns = fns.reverse();
+
+    var forward = name === "enter";
+    var f = function() {
+      var this$1 = this;
+      var args = [], len = arguments.length;
+      while ( len-- ) args[ len ] = arguments[ len ];
+
+      for (var i = 0, list = fns; i < list.length; i += 1) {
+        var f = list[i];
+
+        if (name in f && f[name]) {
+          var x = f[name].apply(this$1, args);
+          if (forward) { args[0] = x; }
+        }
+      }
+    };
+    return f;
+  }
+
+  function compose() {
+    var fns = [], len = arguments.length;
+    while ( len-- ) fns[ len ] = arguments[ len ];
+
+    var f = gup();
+
+    for (var i = 0, list = fns; i < list.length; i += 1) {
+      var source = list[i];
+
+      for (var k in source) {
+        if (!nonEnumerableProps.test(k)) {
+          f[k] = source[k];
+        }
+      }
+    }
+
+    fns = fns.reverse();
+    f.pre(comp(fns, "pre"));
+    f.exit(comp(fns, "exit"));
+    f.enter(comp(fns, "enter"));
+    f.post(comp(fns, "post"));
+
+    return f;
+  }
+
   exports.gup = gup;
   exports.gupEmpty = empty;
+  exports.gupCompose = compose;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
