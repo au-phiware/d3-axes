@@ -1,3 +1,4 @@
+import { gup } from 'd3-gup';
 import { closestClassed } from './closest';
 
 const epsilon = 1e-6;
@@ -24,40 +25,30 @@ export function grid(basis) {
       , values = tickValues == null ? (scale.ticks ? scale.ticks.apply(scale, tickArguments || basis.tickArguments()) : scale.domain()) : tickValues
       , range = axis.scale().range()
       , size = range[1] - range[0]
-      , x, y = closestClassed(selection, 'axis').classed("y") ? (x = "x", "y") : (x = "y", "x")
+      , [x, y] = closestClassed(selection, 'axis').classed("y")
+        ? ["x", "y"]
+        : ["y", "x"]
       , position = (range = basis.scale().range(), scale.bandwidth ? center : identity)(scale.copy().range([range[0] + 0.5, range[1] + 0.5]))
-      , line = selection.selectAll(".grid").data(values, scale).order()
-      , lineExit = line.exit()
-      , lineEnter = line.enter().append("line")
-          .attr("class", "grid")
-          .attr(x + "2", size)
-          .attr(y + "1", position)
-          .attr(y + "2", position)
-      ;
-
-    line = line.merge(lineEnter);
-
-    if (context !== selection && line.transition && lineExit.transition) {
-      line = line.transition(context);
-      lineExit = lineExit.transition(context)
-          .attr("opacity", epsilon)
-          .attr(x + "2", size)
-          .attr(y + "1", function(d) { return position(d); })
-          .attr(y + "2", function(d) { return position(d); });
-      lineEnter
-          .attr("opacity", epsilon)
-          .attr(y + "1", function(d) { return (this.parentNode.__grid || position)(d); })
-          .attr(y + "2", function(d) { return (this.parentNode.__grid || position)(d); });
-    }
-
-    lineExit.remove();
-
-    line.attr("opacity", 1)
-        .attr(x + "2", size)
-        .attr(y + "1", position)
-        .attr(y + "2", position);
-
-    selection.each(function() { this.__grid = position; });
+      , line = gup()
+          .pre($ => ($.selection ? $.selection() : $).order())
+          .exit($ => $.attr("opacity", epsilon)
+            .attr(x + "2", size)
+            .attr(y + "1", function(d) { return position(d); })
+            .attr(y + "2", function(d) { return position(d); })
+            .remove())
+          .enter($ => $.append("line")
+            .attr("class", "grid")
+            .attr("opacity", epsilon)
+            .attr(x + "2", size)
+            .attr(y + "1", function(d) { return (this.parentNode.__grid || position)(d); })
+            .attr(y + "2", function(d) { return (this.parentNode.__grid || position)(d); }))
+          .post($ => $.attr("opacity", 1)
+            .attr(x + "2", size)
+            .attr(y + "1", position)
+            .attr(y + "2", position))
+    ;
+    selection.selectAll(".grid").call(line, values, scale)
+      .each(function() { this.__grid = position; });
   }
 
   grid.ticks = function(...args) {
