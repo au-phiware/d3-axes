@@ -26,7 +26,11 @@ body {
     display: none;
 }
 
-#axes-0 .shapes {
+#axes-shape-0 {
+    clip-path: url(#axes-0-clip-path);
+}
+
+.loading #axes-shape-1 {
     clip-path: url(#axes-0-clip-path);
 }
 
@@ -34,5 +38,9 @@ body {
     fill: none;
     stroke: steelblue;
     stroke-width: 1.5px;
+}
+
+#axes-shape-1 .shape {
+    fill: white;
 }
 

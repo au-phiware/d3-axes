@@ -70,6 +70,7 @@ let x = d => +d.t
 icons.path().x(x).y(y);
 
 let svg = d3.select("svg")
+      .classed("loading", true)
       .attr("width", plot.width())
       .attr("height", plot.height());
 
@@ -85,5 +86,6 @@ csv("data.csv").then(data => {
   );
 
   svg.transition().duration(900)
+      .on('end', () => svg.classed("loading", false))
       .call(plot);
 });
