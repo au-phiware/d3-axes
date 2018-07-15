@@ -1,3 +1,4 @@
+import { gup } from 'd3-gup';
 import { compose } from 'd3-compose';
 import { compose as scaler } from './scaler';
 
@@ -7,10 +8,11 @@ export function shape(path) {
   let data = []
     , index = count++
     , id = null
-    , update = $ => $
-    , exit = $ => $.remove()
-    , enter = $ => $
-    , merge = $ => $.attr("d", path)
+    , call = gup()
+        .exit($ => $.remove())
+        .enter($ => $.append("path")
+          .attr('class', 'shape'))
+        .post($ => $.attr("d", path))
   ;
   function shape(axes, context, ...args) {
     if (path.x) {
@@ -35,34 +37,11 @@ export function shape(path) {
         .attr('class', 'shapes');
     }
 
-    g = g.selectAll('path.shape').data(data);
-    let $update = g;
-    if (shouldTransition && $update.transition) {
-      $update = $update.transition(context);
+    g = g.selectAll('path.shape')
+    if (shouldTransition && g.transition) {
+      g = g.transition(context);
     }
-    $update.call(shape.update());
-    let updateTransition = context;
-    if ($update.selection) {
-      updateTransition = $update;
-      $update = $update.selection();
-    }
-
-    let $exit = g.exit();
-    if (shouldTransition && $exit.transition) {
-      $exit = $exit.transition(context);
-    }
-    $exit.call(shape.exit());
-
-    let $enter = g.enter()
-      .append("path")
-      .attr('class', 'shape')
-      .call(shape.enter());
-
-    $update = $enter.merge($update)
-    if (shouldTransition && $update.transition) {
-      $update = $update.transition(updateTransition);
-    }
-    $update.call(shape.merge());
+    g.call(call, data);
   }
 
   shape.path = function(_) {
@@ -77,20 +56,8 @@ export function shape(path) {
     return arguments.length ? (id = _, shape) : (id || 'axes-shape-' + index);
   }
 
-  shape.update = function(_) {
-    return arguments.length ? (update = _, shape) : update;
-  }
-
-  shape.exit = function(_) {
-    return arguments.length ? (exit = _, shape) : exit;
-  }
-
-  shape.enter = function(_) {
-    return arguments.length ? (enter = _, shape) : enter;
-  }
-
-  shape.merge = function(_) {
-    return arguments.length ? (merge = _, shape) : merge;
+  shape.gup = function(_) {
+    return arguments.length ? (call = _, shape) : call;
   }
 
   return shape;
@@ -110,14 +77,15 @@ export function symbol(path) {
   }
 
   let $ = shape(path);
-  return $.merge(
+  $.gup().post(
     compose(
       $ => $.attr('transform', d => `translate(${
         path.x()(d)
       } ${
         path.y()(d)
       })`)
-    , $.merge()
+    , $.gup().post()
     )
   );
+  return $;
 }
