@@ -11,6 +11,8 @@ var _d3Transition = require('d3-transition');
 
 var d3transition = _interopRequireWildcard(_d3Transition);
 
+var _d3Gup = require('d3-gup');
+
 var _d3Scale = require('d3-scale');
 
 var _d3Axis = require('d3-axis');
@@ -32,16 +34,30 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 //import 'put-selector';
 //put.addNamespace('svg', d3.namespaces.svg);
 
-function wrapSelection(selection, selector) {
-  var wrapped = selection.select(selector);
+function guard(context, runner) {
+  var selection = void 0;
+  if (context.selection) {
+    selection = runner(context.selection());
+    if (selection.transition) {
+      return selection.transition(context);
+    }
+  } else {
+    selection = runner(context);
+  }
+  return selection;
+}
+
+function wrapSelection(context, selector) {
+  var wrapped = context.select(selector);
   if (!wrapped.size()) {
-    //wrapped = selection.append(d => put('svg|' + selector));
     var _selector$split = selector.split('.', 2),
         _selector$split2 = _slicedToArray(_selector$split, 2),
         tag = _selector$split2[0],
         className = _selector$split2[1];
 
-    wrapped = selection.append(tag).attr('class', className);
+    wrapped = guard(context, function ($) {
+      return $.append(tag).attr('class', className);
+    });
   }
   return wrapped;
 }
@@ -55,27 +71,20 @@ var x = function x(d) {
     xAxis = (0, _d3Axis.axisBottom)().scale((0, _d3Scale.scaleLinear)()),
     yAxis = (0, _d3Axis.axisLeft)().scale((0, _d3Scale.scaleLinear)()),
     curve = (0, _d3Axes.axesShape)((0, _d3Shape.line)().x(x).y(y)),
-    icons = (0, _d3Axes.axesSymbol)((0, _d3Shape.symbol)()),
-    plot = (0, _d3Wrap.wrap)((0, _d3Wrap.wrap)((0, _d3Axes.axes)((0, _d3Compose.compose)(_d3Axes.axesPositionBottom, xAxis), (0, _d3Compose.compose)(function (selection) {
-  var label = selection.select('.label');
-
-  if (!label.size()) {
-    label = selection.append('text').attr('class', 'label');
-  }
-  label.attr('transform', 'rotate(-90)').attr('y', 6).attr('dy', '.71em').style('text-anchor', 'end').text('Velocity');
-}, yAxis, (0, _d3Wrap.wrap)((0, _d3Axes.axesGrid)(yAxis), function (gridAxis, selection) {
-  for (var _len = arguments.length, args = Array(_len > 2 ? _len - 2 : 0), _key = 2; _key < _len; _key++) {
-    args[_key - 2] = arguments[_key];
-  }
-
-  return gridAxis.apply(undefined, [wrapSelection(selection, 'g.major')].concat(args));
-}), (0, _d3Wrap.wrap)((0, _d3Axes.axesGrid)(yAxis).ticks(50), function (gridAxis, selection) {
-  for (var _len2 = arguments.length, args = Array(_len2 > 2 ? _len2 - 2 : 0), _key2 = 2; _key2 < _len2; _key2++) {
-    args[_key2 - 2] = arguments[_key2];
-  }
-
-  return gridAxis.apply(undefined, [wrapSelection(selection, 'g.minor')].concat(args));
-}))).padding(20, 20, 30, 50).width(document.documentElement.clientWidth).height(500).domain([0.01, 0.03], [-0.002, 0.002]), curve), icons);
+    icons = (0, _d3Axes.axesSymbol)((0, _d3Shape.symbol)().size(36)),
+    yLabel = (0, _d3Gup.gup)().enter(function ($) {
+  return $.append('text').attr('class', 'label');
+}).post(function ($, offset, text) {
+  return $.attr('transform', 'rotate(-90)').attr('y', offset).attr('dy', '.71em').style('text-anchor', 'end').text(text);
+})([null]),
+    grid = function grid(axis, name) {
+  return (0, _d3Wrap.wrap)((0, _d3Axes.axesGrid)(axis), function (grid, $, refAxis) {
+    return grid(wrapSelection($, 'g.' + name), refAxis);
+  });
+},
+    plot = (0, _d3Wrap.wrap)((0, _d3Wrap.wrap)((0, _d3Axes.axes)((0, _d3Compose.compose)(_d3Axes.axesPositionBottom, xAxis), (0, _d3Compose.compose)(function ($) {
+  return $.selectAll('.label').call(yLabel, 6, 'Velocity');
+}, yAxis, grid(yAxis, 'major'), grid(yAxis, 'minor').ticks(50))).padding(20, 20, 30, 50).width(document.documentElement.clientWidth).height(500).domain([0.01, 0.03], [-0.002, 0.002]), curve), icons);
 
 icons.path().x(x).y(y);
 
@@ -94,7 +103,7 @@ plot(svg);
   }).call(plot);
 });
 
-},{"d3-array":2,"d3-axes":3,"d3-axis":4,"d3-compose":7,"d3-fetch":11,"d3-scale":16,"d3-selection":17,"d3-shape":18,"d3-transition":22,"d3-wrap":23}],2:[function(require,module,exports){
+},{"d3-array":2,"d3-axes":3,"d3-axis":4,"d3-compose":7,"d3-fetch":11,"d3-gup":13,"d3-scale":16,"d3-selection":17,"d3-shape":18,"d3-transition":22,"d3-wrap":23}],2:[function(require,module,exports){
 // https://d3js.org/d3-array/ Version 1.2.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
