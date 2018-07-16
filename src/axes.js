@@ -1,3 +1,4 @@
+import { gup } from 'd3-gup';
 import { closestClassed } from './closest';
 
 function translate(context, v) {
@@ -46,6 +47,25 @@ function empty(scale) {
 
 const positionDefault = positionOrigin;
 
+const container = gup()
+  .enter(($, id) => $.append("g")
+    .attr("id", id)
+    .attr("class", "axes"))
+  .post(($, id, h, v) => $
+    .attr("transform", `translate(${h} ${v})`)
+  )([null]);
+const clipPath = gup()
+  .enter(($, id) => $.append("clipPath")
+    .attr("id", `${id}-clip-path`)
+    .append("rect"))
+  .post(($, id, h, v) => $.select("rect")
+    .attr("width", h)
+    .attr("height", v))([null]);
+const axis = gup()
+  .enter(($, axis) => $.append("g")
+    .attr("class", `${axis} axis`))
+  .post(($, _, x, y) => $.call(x, y))([null]);
+
 let count = 0;
 
 export function axes(x, y) {
@@ -69,39 +89,13 @@ export function axes(x, y) {
     y.scale().range([v, 0]);
 
     let id = axes.id();
-    let g = selection.select("g#" + id);
-    if (!g.size()) {
-      g = selection.append("g")
-        .attr("id", id)
-        .attr("class", "axes");
-      g.append("clipPath")
-        .attr("id", id + "-clip-path")
-        .append("rect");
-    }
-    g.select("#" + id + "-clip-path")
-      .select("rect")
-        .attr("width", h)
-        .attr("height", v);
+    context.selectAll(`g#${id}`)
+      .call(container, id, paddingLeft, paddingTop);
 
-    if (context !== selection && g.transition) {
-      g = g.transition(context);
-    }
-
-    g.attr("transform", "translate(" + paddingLeft + "," + paddingTop + ")");
-    
-    let xAxis = g.select(".x.axis");
-    if (!xAxis.size()) {
-      xAxis = g.append('g')
-        .attr('class', 'x axis');
-    }
-    xAxis.call(x, y);
-
-    let yAxis = g.select(".y.axis");
-    if (!yAxis.size()) {
-      yAxis = g.append('g')
-        .attr('class', 'y axis')
-    }
-    yAxis.call(y, x);
+    let g = context.select(`g#${id}`);
+    g.selectAll(`#${id}-clip-path`).call(clipPath, id, h, v);
+    g.selectAll(".x.axis").call(axis, "x", x, y);
+    g.selectAll(".y.axis").call(axis, "y", y, x);
   }
 
   axes.x = function(_) {
