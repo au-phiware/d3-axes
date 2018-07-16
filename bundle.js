@@ -799,11 +799,11 @@ Object.defineProperty(exports, '__esModule', { value: true });
     }
 
     axes.x = function(_) {
-      return arguments.length ? (x = _, axes) : x;
+      return arguments.length ? (x = _, this) : x;
     };
 
     axes.y = function(_) {
-      return arguments.length ? (y = _, axes) : y;
+      return arguments.length ? (y = _, this) : y;
     };
 
     axes.padding = function(v, h, b, l) {
@@ -828,15 +828,15 @@ Object.defineProperty(exports, '__esModule', { value: true });
           break;
       }
       (assign$1 = [ v, h, b, l ], paddingTop = assign$1[0], paddingRight = assign$1[1], paddingBottom = assign$1[2], paddingLeft = assign$1[3]);
-      return axes;
+      return this;
     };
 
     axes.height = function(_) {
-      return arguments.length ? (height = _, axes) : height;
+      return arguments.length ? (height = _, this) : height;
     };
 
     axes.width = function(_) {
-      return arguments.length ? (width = _, axes) : width;
+      return arguments.length ? (width = _, this) : width;
     };
 
     axes.domain = function(_x, _y) {
@@ -844,11 +844,11 @@ Object.defineProperty(exports, '__esModule', { value: true });
         { return [x.scale().domain(), y.scale().domain()]; }
       if (_x) { x.scale().domain(_x); }
       if (_y) { y.scale().domain(_y); }
-      return axes;
+      return this;
     };
 
     axes.id = function(_) {
-      return arguments.length ? (id = _, axes) : (id || 'axes-' + index);
+      return arguments.length ? (id = _, this) : (id || 'axes-' + index);
     };
 
     return axes;
@@ -913,15 +913,15 @@ Object.defineProperty(exports, '__esModule', { value: true });
       var args = [], len = arguments.length;
       while ( len-- ) args[ len ] = arguments[ len ];
 
-      return tickArguments = args, grid;
+      return tickArguments = args, this;
     };
 
     grid.tickArguments = function(_) {
-      return arguments.length ? (tickArguments = _ == null ? [] : slice.call(_), grid) : tickArguments.slice();
+      return arguments.length ? (tickArguments = _ == null ? [] : slice.call(_), this) : tickArguments.slice();
     };
 
     grid.tickValues = function(_) {
-      return arguments.length ? (tickValues = _ == null ? null : slice.call(_), grid) : tickValues && tickValues.slice();
+      return arguments.length ? (tickValues = _ == null ? null : slice.call(_), this) : tickValues && tickValues.slice();
     };
 
     return grid;
@@ -940,7 +940,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
     };
 
     f.scale = function(_) {
-      return arguments.length ? (scale = _, f) : scale;
+      return arguments.length ? (scale = _, this) : scale;
     };
     return f;
   }
@@ -991,7 +991,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
     }
 
     shape.path = function(_) {
-      return arguments.length ? (path = _, shape) : path;
+      return arguments.length ? (path = _, this) : path;
     };
 
     shape.data = function() {
@@ -999,16 +999,16 @@ Object.defineProperty(exports, '__esModule', { value: true });
       while ( len-- ) _[ len ] = arguments[ len ];
 
       return arguments.length
-        ? (data = call.apply(void 0, _), shape)
+        ? (data = call.apply(void 0, _), this)
         : (data.data ? data.data() : data);
     };
 
     shape.id = function(_) {
-      return arguments.length ? (id = _, shape) : (id || 'axes-shape-' + index);
+      return arguments.length ? (id = _, this) : (id || 'axes-shape-' + index);
     };
 
     shape.gup = function(_) {
-      return arguments.length ? (call = _, shape) : call;
+      return arguments.length ? (call = _, this) : call;
     };
 
     return shape;
@@ -1020,11 +1020,11 @@ Object.defineProperty(exports, '__esModule', { value: true });
     ;
 
     path.x = function(_) {
-      return arguments.length ? (x = _, path) : x;
+      return arguments.length ? (x = _, this) : x;
     };
 
     path.y = function(_) {
-      return arguments.length ? (y = _, path) : y;
+      return arguments.length ? (y = _, this) : y;
     };
 
     var $ = shape(path);
@@ -3010,10 +3010,10 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 },{}],13:[function(require,module,exports){
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
-  typeof define === 'function' && define.amd ? define(['exports'], factory) :
-  (factory((global.d3 = {})));
-}(this, (function (exports) { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-transition')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'd3-selection', 'd3-transition'], factory) :
+  (factory((global.d3 = {}),global.d3,global.d3));
+}(this, (function (exports,d3Selection,d3Transition) { 'use strict';
 
   function empty() {}
 
@@ -3027,8 +3027,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
       var more = [], len = arguments.length - 1;
       while ( len-- > 0 ) more[ len ] = arguments[ len + 1 ];
 
-      if (data.constructor.toString().substr(9,10) === "Selection(" ||
-        data.constructor.toString().substr(9,11) === "Transition(") {
+      if (data instanceof d3Selection.selection || data instanceof d3Transition.transition) {
         return gup.apply(this, more)(data);
       }
       return function() {
@@ -3173,7 +3172,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],14:[function(require,module,exports){
+},{"d3-selection":17,"d3-transition":22}],14:[function(require,module,exports){
 // https://d3js.org/d3-interpolate/ Version 1.2.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-color')) :
