@@ -5,14 +5,14 @@ import { compose as scaler } from './scaler';
 let count = 0;
 
 export function shape(path) {
-  let data = []
-    , index = count++
+  let index = count++
     , id = null
     , call = gup()
         .exit($ => $.remove())
         .enter($ => $.append("path")
           .attr('class', 'shape'))
         .post($ => $.attr("d", path))
+    , data = call([])
   ;
   function shape(axes, context, ...args) {
     if (path.x) {
@@ -41,15 +41,17 @@ export function shape(path) {
     if (shouldTransition && g.transition) {
       g = g.transition(context);
     }
-    g.call(call, data);
+    g.call(data);
   }
 
   shape.path = function(_) {
     return arguments.length ? (path = _, shape) : path;
   }
 
-  shape.data = function(_) {
-    return arguments.length ? (data = _, shape) : data;
+  shape.data = function(..._) {
+    return arguments.length
+      ? (data = call(..._), shape)
+      : (data.data ? data.data() : data);
   }
 
   shape.id = function(_) {

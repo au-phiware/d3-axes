@@ -51,7 +51,7 @@ export function grid(basis) {
       position.set(context.node(), p);
     }
     context.selectAll(".grid")
-      .call(line, values, scale);
+      .call(line(values, scale));
     position.set(context.node(), p);
   }
 
