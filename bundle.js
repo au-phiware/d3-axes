@@ -905,7 +905,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
         position.set(context.node(), p);
       }
       context.selectAll(".grid")
-        .call(line, values, scale);
+        .call(line(values, scale));
       position.set(context.node(), p);
     }
 
@@ -948,14 +948,14 @@ Object.defineProperty(exports, '__esModule', { value: true });
   var count$1 = 0;
 
   function shape(path) {
-    var data = []
-      , index = count$1++
+    var index = count$1++
       , id = null
       , call = d3Gup.gup()
           .exit(function ($) { return $.remove(); })
           .enter(function ($) { return $.append("path")
             .attr('class', 'shape'); })
           .post(function ($) { return $.attr("d", path); })
+      , data = call([])
     ;
     function shape(axes, context) {
       var args = [], len = arguments.length - 2;
@@ -987,15 +987,20 @@ Object.defineProperty(exports, '__esModule', { value: true });
       if (shouldTransition && g.transition) {
         g = g.transition(context);
       }
-      g.call(call, data);
+      g.call(data);
     }
 
     shape.path = function(_) {
       return arguments.length ? (path = _, shape) : path;
     };
 
-    shape.data = function(_) {
-      return arguments.length ? (data = _, shape) : data;
+    shape.data = function() {
+      var _ = [], len = arguments.length;
+      while ( len-- ) _[ len ] = arguments[ len ];
+
+      return arguments.length
+        ? (data = call.apply(void 0, _), shape)
+        : (data.data ? data.data() : data);
     };
 
     shape.id = function(_) {
