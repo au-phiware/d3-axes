@@ -35,6 +35,15 @@ function position(_) {
   };
 }
 
+function empty(scale) {
+  function axis(context) {
+  }
+  axis.scale = function(_) {
+    return arguments.length ? (scale = _, this) : scale;
+  }
+  return axis;
+}
+
 const positionDefault = positionOrigin;
 
 let count = 0;
@@ -153,3 +162,4 @@ export { positionStart as axesPositionBottom, positionStart as axesPositionLeft 
 export { positionEnd as axesPositionTop, positionEnd as axesPositionRight };
 export { positionDefault as axesPositionDefault };
 export { position as axesPosition };
+export { empty as axesEmpty };
