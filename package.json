@@ -17,7 +17,7 @@
   ],
   "scripts": {
     "clean": "rm -f d3-axes.js d3-axes.min.js",
-    "pretest": "rollup -c",
+    "pretest": "npm install && rollup -c",
     "test": "tape 'test/**/*-test.js'",
     "preversion": "npm test",
     "version": "npm run pretest && uglifyjs d3-axes.js -c -m -o d3-axes.min.js",
