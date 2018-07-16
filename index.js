@@ -1,5 +1,6 @@
 import * as d3 from 'd3-selection';
 import * as d3transition from 'd3-transition';
+import { gup } from 'd3-gup';
 import { scaleLinear } from 'd3-scale';
 import { axisBottom, axisLeft } from 'd3-axis';
 import { csv } from 'd3-fetch';
@@ -40,34 +41,29 @@ let x = d => +d.t
   , xAxis = axisBottom().scale(scaleLinear())
   , yAxis = axisLeft().scale(scaleLinear())
   , curve = shape(line().x(x).y(y))
-  , icons = symbol(circle())
+  , icons = symbol(circle().size(36))
+  , yLabel = gup()
+      .enter($ => $
+        .append('text')
+        .attr('class', 'label'))
+      .post(($, offset, text) => $
+        .attr('transform', 'rotate(-90)')
+        .attr('y', offset)
+        .attr('dy', '.71em')
+        .style('text-anchor', 'end')
+        .text(text))([null])
+  , grid = (axis, name) => wrap(
+      axesGrid(axis),
+      (grid, $, refAxis) => grid(wrapSelection($, `g.${name}`), refAxis))
   , plot = wrap(
       wrap(
         axes(
           compose(axesPositionBottom, xAxis)
         , compose(
-            context => {
-              let label = context.select('.label');
-
-              if (!label.size()) {
-                label = guard(context, $ => $
-                  .append('text')
-                  .attr('class', 'label'));
-              }
-              label
-                .attr('transform', 'rotate(-90)')
-                .attr('y', 6)
-                .attr('dy', '.71em')
-                .style('text-anchor', 'end')
-                .text('Velocity');
-            },
+            ($ => $.selectAll('.label').call(yLabel, 6, 'Velocity')),
             yAxis,
-            wrap(axesGrid(yAxis), (gridAxis, selection, ...args) => {
-              return gridAxis.apply(this, [wrapSelection(selection, 'g.major')].concat(args));
-            }),
-            wrap(axesGrid(yAxis).ticks(50), (gridAxis, selection, ...args) => {
-              return gridAxis.apply(this, [wrapSelection(selection, 'g.minor')].concat(args));
-            })
+            grid(yAxis, 'major'),
+            grid(yAxis, 'minor').ticks(50)
           )
         )
         .padding(20, 20, 30, 50)
