@@ -12,13 +12,25 @@ import { wrap } from 'd3-wrap';
 //import 'put-selector';
 //put.addNamespace('svg', d3.namespaces.svg);
 
-function wrapSelection(selection, selector) {
-  let wrapped = selection.select(selector);
+function guard(context, runner) {
+  let selection;
+  if (context.selection) {
+    selection = runner(context.selection());
+    if (selection.transition) {
+      return selection.transition(context);
+    }
+  } else {
+    selection = runner(context);
+  }
+  return selection;
+}
+
+function wrapSelection(context, selector) {
+  let wrapped = context.select(selector);
   if (!wrapped.size()) {
-    //wrapped = selection.append(d => put('svg|' + selector));
     let [ tag, className ] = selector.split('.', 2);
-    wrapped = selection.append(tag)
-      .attr('class', className);
+    wrapped = guard(context, $ => $.append(tag)
+      .attr('class', className));
   }
   return wrapped;
 }
@@ -34,12 +46,13 @@ let x = d => +d.t
         axes(
           compose(axesPositionBottom, xAxis)
         , compose(
-            function(selection) {
-              let label = selection.select('.label');
+            context => {
+              let label = context.select('.label');
 
               if (!label.size()) {
-                label = selection.append('text')
-                  .attr('class', 'label');
+                label = guard(context, $ => $
+                  .append('text')
+                  .attr('class', 'label'));
               }
               label
                 .attr('transform', 'rotate(-90)')
