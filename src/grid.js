@@ -56,15 +56,15 @@ export function grid(basis) {
   }
 
   grid.ticks = function(...args) {
-    return tickArguments = args, grid;
+    return tickArguments = args, this;
   };
 
   grid.tickArguments = function(_) {
-    return arguments.length ? (tickArguments = _ == null ? [] : slice.call(_), grid) : tickArguments.slice();
+    return arguments.length ? (tickArguments = _ == null ? [] : slice.call(_), this) : tickArguments.slice();
   };
 
   grid.tickValues = function(_) {
-    return arguments.length ? (tickValues = _ == null ? null : slice.call(_), grid) : tickValues && tickValues.slice();
+    return arguments.length ? (tickValues = _ == null ? null : slice.call(_), this) : tickValues && tickValues.slice();
   };
 
   return grid;

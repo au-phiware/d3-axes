@@ -96,11 +96,11 @@ export function axes(x, y) {
   }
 
   axes.x = function(_) {
-    return arguments.length ? (x = _, axes) : x;
+    return arguments.length ? (x = _, this) : x;
   };
 
   axes.y = function(_) {
-    return arguments.length ? (y = _, axes) : y;
+    return arguments.length ? (y = _, this) : y;
   };
 
   axes.padding = function(v, h, b, l) {
@@ -123,15 +123,15 @@ export function axes(x, y) {
         break;
     }
     [ paddingTop, paddingRight, paddingBottom, paddingLeft ] = [ v, h, b, l ];
-    return axes;
+    return this;
   };
 
   axes.height = function(_) {
-    return arguments.length ? (height = _, axes) : height;
+    return arguments.length ? (height = _, this) : height;
   };
 
   axes.width = function(_) {
-    return arguments.length ? (width = _, axes) : width;
+    return arguments.length ? (width = _, this) : width;
   };
 
   axes.domain = function(_x, _y) {
@@ -139,11 +139,11 @@ export function axes(x, y) {
       return [x.scale().domain(), y.scale().domain()];
     if (_x) x.scale().domain(_x);
     if (_y) y.scale().domain(_y);
-    return axes;
+    return this;
   };
 
   axes.id = function(_) {
-    return arguments.length ? (id = _, axes) : (id || 'axes-' + index);
+    return arguments.length ? (id = _, this) : (id || 'axes-' + index);
   }
 
   return axes;

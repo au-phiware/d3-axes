@@ -8,7 +8,7 @@ export function compose(scale, accessor) {
   }
 
   f.scale = function(_) {
-    return arguments.length ? (scale = _, f) : scale;
+    return arguments.length ? (scale = _, this) : scale;
   }
   return f;
 }

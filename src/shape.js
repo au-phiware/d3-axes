@@ -45,21 +45,21 @@ export function shape(path) {
   }
 
   shape.path = function(_) {
-    return arguments.length ? (path = _, shape) : path;
+    return arguments.length ? (path = _, this) : path;
   }
 
   shape.data = function(..._) {
     return arguments.length
-      ? (data = call(..._), shape)
+      ? (data = call(..._), this)
       : (data.data ? data.data() : data);
   }
 
   shape.id = function(_) {
-    return arguments.length ? (id = _, shape) : (id || 'axes-shape-' + index);
+    return arguments.length ? (id = _, this) : (id || 'axes-shape-' + index);
   }
 
   shape.gup = function(_) {
-    return arguments.length ? (call = _, shape) : call;
+    return arguments.length ? (call = _, this) : call;
   }
 
   return shape;
@@ -71,11 +71,11 @@ export function symbol(path) {
   ;
 
   path.x = function(_) {
-    return arguments.length ? (x = _, path) : x;
+    return arguments.length ? (x = _, this) : x;
   }
 
   path.y = function(_) {
-    return arguments.length ? (y = _, path) : y;
+    return arguments.length ? (y = _, this) : y;
   }
 
   let $ = shape(path);
