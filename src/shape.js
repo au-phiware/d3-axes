@@ -1,5 +1,4 @@
-import { gup } from 'd3-gup';
-import { compose } from 'd3-compose';
+import { gup, gupCompose } from 'd3-gup';
 import { compose as scaler } from './scaler';
 
 let count = 0;
@@ -10,8 +9,9 @@ export function shape(path) {
     , call = gup()
         .exit($ => $.remove())
         .enter($ => $.append("path")
+          .attr("d", path)
           .attr('class', 'shape'))
-        .post($ => $.attr("d", path))
+        .pre($ => $.attr("d", path))
     , data = call([])
   ;
   function shape(axes, context, ...args) {
@@ -79,15 +79,21 @@ export function symbol(path) {
   }
 
   let $ = shape(path);
-  $.gup().post(
-    compose(
-      $ => $.attr('transform', d => `translate(${
-        path.x()(d)
-      } ${
-        path.y()(d)
-      })`)
-    , $.gup().post()
+  $.gup(
+    gupCompose(
+      $.gup()
+    , gup()
+      .pre(translate)
+      .enter(translate)
     )
   );
   return $;
+
+  function translate($) {
+    return $.attr('transform', d => `translate(${
+      path.x()(d)
+    } ${
+      path.y()(d)
+    })`)
+  }
 }

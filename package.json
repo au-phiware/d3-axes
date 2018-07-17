@@ -36,7 +36,7 @@
   "homepage": "https://au-phiware.github.io/d3-axes/",
   "dependencies": {
     "d3-compose": "^0.1.1",
-    "d3-gup": "^0.4.2",
+    "d3-gup": "^0.4.3",
     "d3-selection": "^1.3.0"
   },
   "devDependencies": {
