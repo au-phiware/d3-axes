@@ -54,7 +54,7 @@ let x = d => +d.t
         .text(text))([null])
   , grid = (axis, name) => wrap(
       axesGrid(axis),
-      (grid, $, refAxis) => grid(wrapSelection($, `g.${name}`), refAxis))
+      ($, grid, refAxis) => grid(wrapSelection($, `g.${name}`), refAxis))
   , plot = wrap(
       wrap(
         axes(
