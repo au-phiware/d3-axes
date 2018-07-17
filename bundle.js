@@ -103,7 +103,7 @@ plot(svg);
   }).call(plot);
 });
 
-},{"d3-array":2,"d3-axes":20,"d3-axis":3,"d3-compose":29,"d3-fetch":9,"d3-gup":30,"d3-scale":13,"d3-selection":14,"d3-shape":15,"d3-transition":19,"d3-wrap":38}],2:[function(require,module,exports){
+},{"d3-array":2,"d3-axes":3,"d3-axis":4,"d3-compose":7,"d3-fetch":11,"d3-gup":13,"d3-scale":16,"d3-selection":17,"d3-shape":18,"d3-transition":22,"d3-wrap":23}],2:[function(require,module,exports){
 // https://d3js.org/d3-array/ Version 1.2.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -696,6 +696,382 @@ Object.defineProperty(exports, '__esModule', { value: true });
 })));
 
 },{}],3:[function(require,module,exports){
+(function (global, factory) {
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-gup')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'd3-selection', 'd3-gup'], factory) :
+  (factory((global.d3 = {}),global.d3,global.d3));
+}(this, (function (exports,d3,d3Gup) { 'use strict';
+
+  function closestClassed(selection, className) {
+    var closest = selection;
+    while (!closest.classed(className)) {
+      closest = closest.node().parentElement;
+      if (!closest) { return; }
+      closest = d3.select(closest);
+    }
+    return closest;
+  }
+
+  function translate(context, v) {
+    var selection = context.selection ? context.selection() : context
+      , x = 0
+      , y = 0
+      ;
+    var closest = closestClassed(selection, 'axis');
+    if (selection.classed('x')) {
+      y = +v;
+    } else if (selection.classed('y')) {
+      x = +v;
+    } else { return; }
+    context.attr('transform', ("translate(" + x + " " + y + ")"));
+  }
+
+  function positionStart(selection, axis) {
+    translate(selection, axis.scale().range()[0]);
+  }
+
+  function positionEnd(selection, axis) {
+    translate(selection, axis.scale().range()[1]);
+  }
+
+  function positionOrigin(selection, axis) {
+    translate(selection, axis.scale()(0));
+  }
+
+  function position(_) {
+    var n = +_;
+    if (isNaN(n))
+      { return positionDefault; }
+    return function(selection, axis) {
+      translate(selection, axis.scale()(n));
+    };
+  }
+
+  function empty(scale) {
+    function axis(context) {
+    }
+    axis.scale = function(_) {
+      return arguments.length ? (scale = _, this) : scale;
+    };
+    return axis;
+  }
+
+  var positionDefault = positionOrigin;
+
+  var container = d3Gup.gup()
+    .enter(function ($, id) { return $.append("g")
+      .attr("id", id)
+      .attr("class", "axes"); })
+    .post(function ($, id, h, v) { return $
+      .attr("transform", ("translate(" + h + " " + v + ")")); }
+    )([null]);
+  var clipPath = d3Gup.gup()
+    .enter(function ($, id) { return $.append("clipPath")
+      .attr("id", (id + "-clip-path"))
+      .append("rect"); })
+    .post(function ($, id, h, v) { return $.select("rect")
+      .attr("width", h)
+      .attr("height", v); })([null]);
+  var axis = d3Gup.gup()
+    .enter(function ($, axis) { return $.append("g")
+      .attr("class", (axis + " axis")); })
+    .post(function ($, _, x, y) { return $.call(x, y); })([null]);
+
+  var count = 0;
+
+  function axes(x, y) {
+    var paddingTop = 20
+      , paddingRight = 20
+      , paddingBottom = 20
+      , paddingLeft = 20
+      , height = 0
+      , width = 0
+      , index = count++
+      , id = null
+      ;
+
+    function axes(context) {
+      var selection = context.selection ? context.selection() : context
+        , v = height - paddingTop - paddingBottom
+        , h = width - paddingRight - paddingLeft
+        ;
+
+      x.scale().range([0, h]);
+      y.scale().range([v, 0]);
+
+      var id = axes.id();
+      context.selectAll(("g#" + id))
+        .call(container, id, paddingLeft, paddingTop);
+
+      var g = context.select(("g#" + id));
+      g.selectAll(("#" + id + "-clip-path")).call(clipPath, id, h, v);
+      g.selectAll(".x.axis").call(axis, "x", x, y);
+      g.selectAll(".y.axis").call(axis, "y", y, x);
+    }
+
+    axes.x = function(_) {
+      return arguments.length ? (x = _, this) : x;
+    };
+
+    axes.y = function(_) {
+      return arguments.length ? (y = _, this) : y;
+    };
+
+    axes.padding = function(v, h, b, l) {
+      var assign, assign$1;
+
+      switch (arguments.length) {
+        case 0:
+          return {
+            "top": paddingTop,
+            "right": paddingRight,
+            "bottom": paddingBottom,
+            "left": paddingLeft
+          };
+        case 1:
+          h = b = l = v;
+          break;
+        case 2:
+          (assign = [ v, h ], b = assign[0], l = assign[1]);
+          break;
+        case 3:
+          l = h;
+          break;
+      }
+      (assign$1 = [ v, h, b, l ], paddingTop = assign$1[0], paddingRight = assign$1[1], paddingBottom = assign$1[2], paddingLeft = assign$1[3]);
+      return this;
+    };
+
+    axes.height = function(_) {
+      return arguments.length ? (height = _, this) : height;
+    };
+
+    axes.width = function(_) {
+      return arguments.length ? (width = _, this) : width;
+    };
+
+    axes.domain = function(_x, _y) {
+      if (!arguments.length)
+        { return [x.scale().domain(), y.scale().domain()]; }
+      if (_x) { x.scale().domain(_x); }
+      if (_y) { y.scale().domain(_y); }
+      return this;
+    };
+
+    axes.id = function(_) {
+      return arguments.length ? (id = _, this) : (id || 'axes-' + index);
+    };
+
+    return axes;
+  }
+
+  function center(scale) {
+    var offset = scale.bandwidth() / 2;
+    if (scale.round()) { offset = Math.round(offset); }
+    return function(d) {
+      return scale(d) + offset;
+    };
+  }
+
+  function gridLine(x, y, size, pos, opacity, next) {
+    return function ($) { return $.attr("opacity", opacity)
+      .attr(x + "2", size)
+      .call(next ? function ($) { return $.each(function() { pos.set(this, next); }); } : function ($){ return $; })
+      .attr(y + "1", function(d) { return pos.get(this)(d) })
+      .attr(y + "2", function(d) { return pos.get(this)(d) }); }
+  }
+
+  function grid(basis) {
+    var position = d3.local();
+
+    var tickValues = null
+      , tickArguments = null
+      ;
+    function grid(context, axis) {
+      var selection = context.selection ? context.selection() : context
+        , scale = basis.scale()
+        , values = tickValues == null ? (scale.ticks ? scale.ticks.apply(scale, tickArguments || basis.tickArguments()) : scale.domain()) : tickValues
+        , range = axis.scale().range()
+        , size = range[1] - range[0];
+      var ref = closestClassed(selection, 'axis').classed("y")
+          ? ["x", "y"]
+          : ["y", "x"];
+      var x = ref[0];
+      var y = ref[1];
+      var line = d3Gup.gup()
+            .pre(function ($) { return ($.selection ? $.selection() : $)
+              .order(); })
+            .exit(function ($) { return $
+              .call(gridLine(x, y, size, position, 0, p))
+              .remove(); })
+            .enter(function ($) { return $.append("line")
+              .attr("class", "grid")
+              .call(gridLine(x, y, size, position, 0)); })
+            .post(function ($) { return $.call(gridLine(x, y, size, position, 1, p)); })
+      ;
+      range = basis.scale().range();
+      var p = scale.copy().range([range[0] + 0.5, range[1] + 0.5]);
+      if (scale.bandwidth) { p = center(p); }
+      if (!position.get(context.node())) {
+        position.set(context.node(), p);
+      }
+      context.selectAll(".grid")
+        .call(line(values, scale));
+      position.set(context.node(), p);
+    }
+
+    grid.ticks = function() {
+      var args = [], len = arguments.length;
+      while ( len-- ) args[ len ] = arguments[ len ];
+
+      return tickArguments = args, this;
+    };
+
+    grid.tickArguments = function(_) {
+      return arguments.length ? (tickArguments = _ == null ? [] : slice.call(_), this) : tickArguments.slice();
+    };
+
+    grid.tickValues = function(_) {
+      return arguments.length ? (tickValues = _ == null ? null : slice.call(_), this) : tickValues && tickValues.slice();
+    };
+
+    return grid;
+  }
+
+  function compose(scale, accessor) {
+    if (accessor.scale) {
+      return accessor.scale(scale);
+    }
+
+    var f = function() {
+      var args = [], len = arguments.length;
+      while ( len-- ) args[ len ] = arguments[ len ];
+
+      return scale.call(this, accessor.apply(this, args));
+    };
+
+    f.scale = function(_) {
+      return arguments.length ? (scale = _, this) : scale;
+    };
+    return f;
+  }
+
+  var count$1 = 0;
+
+  function shape(path) {
+    var index = count$1++
+      , id = null
+      , call = d3Gup.gup()
+          .exit(function ($) { return $.remove(); })
+          .enter(function ($) { return $.append("path")
+            .attr("d", path)
+            .attr('class', 'shape'); })
+          .pre(function ($) { return $.attr("d", path); })
+      , data = call([])
+    ;
+    function shape(context, axes) {
+      var args = [], len = arguments.length - 2;
+      while ( len-- > 0 ) args[ len ] = arguments[ len + 2 ];
+
+      if (path.x) {
+        path.x(compose(axes.x().scale(), path.x()));
+      }
+      if (path.y) {
+        path.y(compose(axes.y().scale(), path.y()));
+      }
+
+      axes.apply(this, [context].concat(args));
+
+      var shouldTransition = !!context.selection;
+      var selection = shouldTransition ? context.selection() : context;
+      selection = selection.select('.axes');
+
+      var id = shape.id();
+      var g = selection
+        .select('g#' + id);
+      if (g.empty()) {
+        g = selection.append('g')
+          .attr('id', id)
+          .attr('class', 'shapes');
+      }
+
+      g = g.selectAll('path.shape');
+      if (shouldTransition && g.transition) {
+        g = g.transition(context);
+      }
+      g.call(data);
+    }
+
+    shape.path = function(_) {
+      return arguments.length ? (path = _, this) : path;
+    };
+
+    shape.data = function() {
+      var _ = [], len = arguments.length;
+      while ( len-- ) _[ len ] = arguments[ len ];
+
+      return arguments.length
+        ? (data = call.apply(void 0, _), this)
+        : (data.data ? data.data() : data);
+    };
+
+    shape.id = function(_) {
+      return arguments.length ? (id = _, this) : (id || 'axes-shape-' + index);
+    };
+
+    shape.gup = function(_) {
+      return arguments.length ? (call = _, this) : call;
+    };
+
+    return shape;
+  }
+
+  function symbol(path) {
+    var x = function (d) { return d[0]; }
+      , y = function (d) { return d[1]; }
+    ;
+
+    path.x = function(_) {
+      return arguments.length ? (x = _, this) : x;
+    };
+
+    path.y = function(_) {
+      return arguments.length ? (y = _, this) : y;
+    };
+
+    var $ = shape(path);
+    $.gup(
+      d3Gup.gupCompose(
+        d3Gup.gup()
+        .pre(translate)
+        .enter(translate)
+      , $.gup()
+      )
+    );
+    return $;
+
+    function translate($) {
+      return $.attr('transform', function (d) { return ("translate(" + (path.x()(d)) + " " + (path.y()(d)) + ")"); })
+    }
+  }
+
+  exports.axes = axes;
+  exports.axesPositionBottom = positionStart;
+  exports.axesPositionLeft = positionStart;
+  exports.axesPositionTop = positionEnd;
+  exports.axesPositionRight = positionEnd;
+  exports.axesPositionDefault = positionDefault;
+  exports.axesPosition = position;
+  exports.axesEmpty = empty;
+  exports.axesGrid = grid;
+  exports.axesShape = shape;
+  exports.axesSymbol = symbol;
+
+  Object.defineProperty(exports, '__esModule', { value: true });
+
+})));
+
+},{"d3-gup":13,"d3-selection":17}],4:[function(require,module,exports){
 // https://d3js.org/d3-axis/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -890,7 +1266,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 // https://d3js.org/d3-collection/ Version 1.0.4. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -1109,7 +1485,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 // https://d3js.org/d3-color/ Version 1.2.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -1660,7 +2036,48 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
+(function (global, factory) {
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+  typeof define === 'function' && define.amd ? define(['exports'], factory) :
+  (factory((global.d3 = global.d3 || {})));
+}(this, (function (exports) { 'use strict';
+
+var nonEnumerableProps = /^(valueOf|isPrototypeOf|to(Locale)?String|propertyIsEnumerable|hasOwnProperty)$/;
+
+function compose() {
+  for (var i = 0, start = arguments.length, args = Array(start); i < start; i++) {
+    args[i] = arguments[i];
+  }
+
+  var f = function() {
+    for (var j = 0, jj = arguments.length, pass = Array(jj); j < jj; j++) {
+      pass[j] = arguments[j];
+    }
+
+    j = start;
+    while (j--) {
+      args[j].apply(this, pass);
+    }
+  };
+  for (i = start - 1; i >= 0; i--) {
+    var source = args[i];
+    for (var k in source) {
+      if (!nonEnumerableProps.test(k)) {
+        f[k] = source[k];
+      }
+    }
+  }
+  return f;
+}
+
+exports.compose = compose;
+
+Object.defineProperty(exports, '__esModule', { value: true });
+
+})));
+
+},{}],8:[function(require,module,exports){
 // https://d3js.org/d3-dispatch/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -1757,7 +2174,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],7:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 // https://d3js.org/d3-dsv/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -1921,7 +2338,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],8:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 // https://d3js.org/d3-ease/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -2182,7 +2599,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],9:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 // https://d3js.org/d3-fetch/ Version 1.1.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dsv')) :
@@ -2286,7 +2703,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dsv":7}],10:[function(require,module,exports){
+},{"d3-dsv":9}],12:[function(require,module,exports){
 // https://d3js.org/d3-format/ Version 1.3.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -2610,7 +3027,180 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],11:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
+(function (global, factory) {
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-transition')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'd3-selection', 'd3-transition'], factory) :
+  (factory((global.d3 = {}),global.d3,global.d3));
+}(this, (function (exports,d3Selection,d3Transition) { 'use strict';
+
+  function empty() {}
+
+  function gup() {
+    var pre = null
+      , exit = null
+      , enter = null
+      , post = null
+    ;
+    function gup(data) {
+      var more = [], len = arguments.length - 1;
+      while ( len-- > 0 ) more[ len ] = arguments[ len + 1 ];
+
+      if (data instanceof d3Selection.selection || data instanceof d3Transition.transition) {
+        return gup.apply(this, more)(data);
+      }
+      function _gup() {
+        var args = [], len = arguments.length;
+        while ( len-- ) args[ len ] = arguments[ len ];
+
+        var context = args.shift();
+        var shouldTransition = !!context.selection;
+        var selection = shouldTransition ? context.selection() : context;
+
+        var $pre = selection.data(data, more[0]);
+        if (pre && pre != empty) {
+          var preT = $pre;
+          if (shouldTransition && $pre.transition) {
+            preT = $pre.transition(context);
+          }
+          preT.call.apply(preT, [ pre ].concat( args ));
+        }
+
+        if (exit && exit != empty) {
+          var $exit = $pre.exit();
+          if (shouldTransition && $exit.transition) {
+            $exit = $exit.transition(context);
+          }
+          $exit.call.apply($exit, [ exit ].concat( args ));
+        }
+
+        var $enter = $pre.enter();
+        if (enter && enter != empty) {
+          $enter = enter.call.apply(enter, [ this, $enter ].concat( args ));
+        }
+
+        if (post && post != empty) {
+          var $post = $enter.merge($pre);
+          if (shouldTransition && $post.transition) {
+            $post = $post.transition(context);
+          }
+          $post.call.apply($post, [ post ].concat( args ));
+        }
+      }
+
+      _gup.data = function() {
+        var assign;
+
+        var _ = [], len = arguments.length;
+        while ( len-- ) _[ len ] = arguments[ len ];
+        return arguments.length ? ((assign = _, data = assign[0], more = assign.slice(1), assign), this) : [data ].concat( more);
+      };
+
+      return _gup;
+    }
+
+    gup.pre = function(_) {
+      return arguments.length ? (pre = _, this) : (pre || empty);
+    };
+
+    gup.exit = function(_) {
+      return arguments.length ? (exit = _, this) : (exit || empty);
+    };
+
+    gup.enter = function(_) {
+      return arguments.length ? (enter = _, this) : (enter || empty);
+    };
+
+    gup.post = function(_) {
+      return arguments.length ? (post = _, this) : (post || empty);
+    };
+
+    gup.update = function() {
+      var assign, assign$1, assign$2, assign$3;
+
+      var args = [], len = arguments.length;
+      while ( len-- ) args[ len ] = arguments[ len ];
+      switch (arguments.length) {
+        case 0: return [
+          pre || empty,
+          exit || empty,
+          enter || empty,
+          post || empty
+        ];
+        case 1:
+          (assign = args, pre = assign[0]);
+          break;
+        case 2:
+          (assign$1 = args, pre = assign$1[0], exit = assign$1[1]);
+          break;
+        case 3:
+          (assign$2 = args, pre = assign$2[0], exit = assign$2[1], enter = assign$2[2]);
+          break;
+        default:
+          (assign$3 = args, pre = assign$3[0], exit = assign$3[1], enter = assign$3[2], post = assign$3[3]);
+      }
+      return this;
+    };
+
+    return gup;
+  }
+
+  var nonEnumerableProps = /^(valueOf|isPrototypeOf|to(Locale)?String|propertyIsEnumerable|hasOwnProperty|pre|exit|enter|post|update)$/;
+
+  function comp(fns, name) {
+    var forward = name === "enter";
+    var f = function() {
+      var this$1 = this;
+      var args = [], len = arguments.length;
+      while ( len-- ) args[ len ] = arguments[ len ];
+
+      for (var i = 0, list = fns; i < list.length; i += 1) {
+        var f = list[i];
+
+        if (name in f && f[name] && (f = f[name]())) {
+          var result = f.apply(this$1, args);
+          if (forward) { args[0] = result; }
+        }
+      }
+      if (forward) { return result; }
+    };
+    return f;
+  }
+
+  function compose() {
+    var fns = [], len = arguments.length;
+    while ( len-- ) fns[ len ] = arguments[ len ];
+
+    var f = gup();
+
+    for (var i = 0, list = fns; i < list.length; i += 1) {
+      var source = list[i];
+
+      for (var k in source) {
+        if (!nonEnumerableProps.test(k)) {
+          f[k] = source[k];
+        }
+      }
+    }
+
+    fns = fns.reverse();
+    f.pre(comp(fns, "pre"));
+    f.exit(comp(fns, "exit"));
+    f.enter(comp(fns, "enter"));
+    f.post(comp(fns, "post"));
+
+    return f;
+  }
+
+  exports.gup = gup;
+  exports.gupEmpty = empty;
+  exports.gupCompose = compose;
+
+  Object.defineProperty(exports, '__esModule', { value: true });
+
+})));
+
+},{"d3-selection":17,"d3-transition":22}],14:[function(require,module,exports){
 // https://d3js.org/d3-interpolate/ Version 1.2.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-color')) :
@@ -3167,7 +3757,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":5}],12:[function(require,module,exports){
+},{"d3-color":6}],15:[function(require,module,exports){
 // https://d3js.org/d3-path/ Version 1.0.5. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -3310,7 +3900,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],13:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 // https://d3js.org/d3-scale/ Version 2.1.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array'), require('d3-collection'), require('d3-interpolate'), require('d3-format'), require('d3-time'), require('d3-time-format')) :
@@ -4213,7 +4803,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":2,"d3-collection":4,"d3-format":10,"d3-interpolate":11,"d3-time":17,"d3-time-format":16}],14:[function(require,module,exports){
+},{"d3-array":2,"d3-collection":5,"d3-format":12,"d3-interpolate":14,"d3-time":20,"d3-time-format":19}],17:[function(require,module,exports){
 // https://d3js.org/d3-selection/ Version 1.3.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -5210,7 +5800,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],15:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 // https://d3js.org/d3-shape/ Version 1.2.0. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-path')) :
@@ -7147,7 +7737,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-path":12}],16:[function(require,module,exports){
+},{"d3-path":15}],19:[function(require,module,exports){
 // https://d3js.org/d3-time-format/ Version 2.1.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-time')) :
@@ -7837,7 +8427,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-time":17}],17:[function(require,module,exports){
+},{"d3-time":20}],20:[function(require,module,exports){
 // https://d3js.org/d3-time/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -8224,7 +8814,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],18:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 // https://d3js.org/d3-timer/ Version 1.0.7. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -8375,7 +8965,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],19:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 // https://d3js.org/d3-transition/ Version 1.1.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-dispatch'), require('d3-timer'), require('d3-interpolate'), require('d3-color'), require('d3-ease')) :
@@ -9164,627 +9754,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":5,"d3-dispatch":6,"d3-ease":8,"d3-interpolate":11,"d3-selection":14,"d3-timer":18}],20:[function(require,module,exports){
-(function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-gup')) :
-  typeof define === 'function' && define.amd ? define(['exports', 'd3-selection', 'd3-gup'], factory) :
-  (factory((global.d3 = {}),global.d3,global.d3));
-}(this, (function (exports,d3,d3Gup) { 'use strict';
-
-  function closestClassed(selection, className) {
-    var closest = selection;
-    while (!closest.classed(className)) {
-      closest = closest.node().parentElement;
-      if (!closest) { return; }
-      closest = d3.select(closest);
-    }
-    return closest;
-  }
-
-  function translate(context, v) {
-    var selection = context.selection ? context.selection() : context
-      , x = 0
-      , y = 0
-      ;
-    var closest = closestClassed(selection, 'axis');
-    if (selection.classed('x')) {
-      y = +v;
-    } else if (selection.classed('y')) {
-      x = +v;
-    } else { return; }
-    context.attr('transform', ("translate(" + x + " " + y + ")"));
-  }
-
-  function positionStart(selection, axis) {
-    translate(selection, axis.scale().range()[0]);
-  }
-
-  function positionEnd(selection, axis) {
-    translate(selection, axis.scale().range()[1]);
-  }
-
-  function positionOrigin(selection, axis) {
-    translate(selection, axis.scale()(0));
-  }
-
-  function position(_) {
-    var n = +_;
-    if (isNaN(n))
-      { return positionDefault; }
-    return function(selection, axis) {
-      translate(selection, axis.scale()(n));
-    };
-  }
-
-  function empty(scale) {
-    function axis(context) {
-    }
-    axis.scale = function(_) {
-      return arguments.length ? (scale = _, this) : scale;
-    };
-    return axis;
-  }
-
-  var positionDefault = positionOrigin;
-
-  var container = d3Gup.gup()
-    .enter(function ($, id) { return $.append("g")
-      .attr("id", id)
-      .attr("class", "axes"); })
-    .post(function ($, id, h, v) { return $
-      .attr("transform", ("translate(" + h + " " + v + ")")); }
-    )([null]);
-  var clipPath = d3Gup.gup()
-    .enter(function ($, id) { return $.append("clipPath")
-      .attr("id", (id + "-clip-path"))
-      .append("rect"); })
-    .post(function ($, id, h, v) { return $.select("rect")
-      .attr("width", h)
-      .attr("height", v); })([null]);
-  var axis = d3Gup.gup()
-    .enter(function ($, axis) { return $.append("g")
-      .attr("class", (axis + " axis")); })
-    .post(function ($, _, x, y) { return $.call(x, y); })([null]);
-
-  var count = 0;
-
-  function axes(x, y) {
-    var paddingTop = 20
-      , paddingRight = 20
-      , paddingBottom = 20
-      , paddingLeft = 20
-      , height = 0
-      , width = 0
-      , index = count++
-      , id = null
-      ;
-
-    function axes(context) {
-      var selection = context.selection ? context.selection() : context
-        , v = height - paddingTop - paddingBottom
-        , h = width - paddingRight - paddingLeft
-        ;
-
-      x.scale().range([0, h]);
-      y.scale().range([v, 0]);
-
-      var id = axes.id();
-      context.selectAll(("g#" + id))
-        .call(container, id, paddingLeft, paddingTop);
-
-      var g = context.select(("g#" + id));
-      g.selectAll(("#" + id + "-clip-path")).call(clipPath, id, h, v);
-      g.selectAll(".x.axis").call(axis, "x", x, y);
-      g.selectAll(".y.axis").call(axis, "y", y, x);
-    }
-
-    axes.x = function(_) {
-      return arguments.length ? (x = _, this) : x;
-    };
-
-    axes.y = function(_) {
-      return arguments.length ? (y = _, this) : y;
-    };
-
-    axes.padding = function(v, h, b, l) {
-      var assign, assign$1;
-
-      switch (arguments.length) {
-        case 0:
-          return {
-            "top": paddingTop,
-            "right": paddingRight,
-            "bottom": paddingBottom,
-            "left": paddingLeft
-          };
-        case 1:
-          h = b = l = v;
-          break;
-        case 2:
-          (assign = [ v, h ], b = assign[0], l = assign[1]);
-          break;
-        case 3:
-          l = h;
-          break;
-      }
-      (assign$1 = [ v, h, b, l ], paddingTop = assign$1[0], paddingRight = assign$1[1], paddingBottom = assign$1[2], paddingLeft = assign$1[3]);
-      return this;
-    };
-
-    axes.height = function(_) {
-      return arguments.length ? (height = _, this) : height;
-    };
-
-    axes.width = function(_) {
-      return arguments.length ? (width = _, this) : width;
-    };
-
-    axes.domain = function(_x, _y) {
-      if (!arguments.length)
-        { return [x.scale().domain(), y.scale().domain()]; }
-      if (_x) { x.scale().domain(_x); }
-      if (_y) { y.scale().domain(_y); }
-      return this;
-    };
-
-    axes.id = function(_) {
-      return arguments.length ? (id = _, this) : (id || 'axes-' + index);
-    };
-
-    return axes;
-  }
-
-  function center(scale) {
-    var offset = scale.bandwidth() / 2;
-    if (scale.round()) { offset = Math.round(offset); }
-    return function(d) {
-      return scale(d) + offset;
-    };
-  }
-
-  function gridLine(x, y, size, pos, opacity, next) {
-    return function ($) { return $.attr("opacity", opacity)
-      .attr(x + "2", size)
-      .call(next ? function ($) { return $.each(function() { pos.set(this, next); }); } : function ($){ return $; })
-      .attr(y + "1", function(d) { return pos.get(this)(d) })
-      .attr(y + "2", function(d) { return pos.get(this)(d) }); }
-  }
-
-  function grid(basis) {
-    var position = d3.local();
-
-    var tickValues = null
-      , tickArguments = null
-      ;
-    function grid(context, axis) {
-      var selection = context.selection ? context.selection() : context
-        , scale = basis.scale()
-        , values = tickValues == null ? (scale.ticks ? scale.ticks.apply(scale, tickArguments || basis.tickArguments()) : scale.domain()) : tickValues
-        , range = axis.scale().range()
-        , size = range[1] - range[0];
-      var ref = closestClassed(selection, 'axis').classed("y")
-          ? ["x", "y"]
-          : ["y", "x"];
-      var x = ref[0];
-      var y = ref[1];
-      var line = d3Gup.gup()
-            .pre(function ($) { return ($.selection ? $.selection() : $)
-              .order(); })
-            .exit(function ($) { return $
-              .call(gridLine(x, y, size, position, 0, p))
-              .remove(); })
-            .enter(function ($) { return $.append("line")
-              .attr("class", "grid")
-              .call(gridLine(x, y, size, position, 0)); })
-            .post(function ($) { return $.call(gridLine(x, y, size, position, 1, p)); })
-      ;
-      range = basis.scale().range();
-      var p = scale.copy().range([range[0] + 0.5, range[1] + 0.5]);
-      if (scale.bandwidth) { p = center(p); }
-      if (!position.get(context.node())) {
-        position.set(context.node(), p);
-      }
-      context.selectAll(".grid")
-        .call(line(values, scale));
-      position.set(context.node(), p);
-    }
-
-    grid.ticks = function() {
-      var args = [], len = arguments.length;
-      while ( len-- ) args[ len ] = arguments[ len ];
-
-      return tickArguments = args, this;
-    };
-
-    grid.tickArguments = function(_) {
-      return arguments.length ? (tickArguments = _ == null ? [] : slice.call(_), this) : tickArguments.slice();
-    };
-
-    grid.tickValues = function(_) {
-      return arguments.length ? (tickValues = _ == null ? null : slice.call(_), this) : tickValues && tickValues.slice();
-    };
-
-    return grid;
-  }
-
-  function compose(scale, accessor) {
-    if (accessor.scale) {
-      return accessor.scale(scale);
-    }
-
-    var f = function() {
-      var args = [], len = arguments.length;
-      while ( len-- ) args[ len ] = arguments[ len ];
-
-      return scale.call(this, accessor.apply(this, args));
-    };
-
-    f.scale = function(_) {
-      return arguments.length ? (scale = _, this) : scale;
-    };
-    return f;
-  }
-
-  var count$1 = 0;
-
-  function shape(path) {
-    var index = count$1++
-      , id = null
-      , call = d3Gup.gup()
-          .exit(function ($) { return $.remove(); })
-          .enter(function ($) { return $.append("path")
-            .attr("d", path)
-            .attr('class', 'shape'); })
-          .pre(function ($) { return $.attr("d", path); })
-      , data = call([])
-    ;
-    function shape(context, axes) {
-      var args = [], len = arguments.length - 2;
-      while ( len-- > 0 ) args[ len ] = arguments[ len + 2 ];
-
-      if (path.x) {
-        path.x(compose(axes.x().scale(), path.x()));
-      }
-      if (path.y) {
-        path.y(compose(axes.y().scale(), path.y()));
-      }
-
-      axes.apply(this, [context].concat(args));
-
-      var shouldTransition = !!context.selection;
-      var selection = shouldTransition ? context.selection() : context;
-      selection = selection.select('.axes');
-
-      var id = shape.id();
-      var g = selection
-        .select('g#' + id);
-      if (g.empty()) {
-        g = selection.append('g')
-          .attr('id', id)
-          .attr('class', 'shapes');
-      }
-
-      g = g.selectAll('path.shape');
-      if (shouldTransition && g.transition) {
-        g = g.transition(context);
-      }
-      g.call(data);
-    }
-
-    shape.path = function(_) {
-      return arguments.length ? (path = _, this) : path;
-    };
-
-    shape.data = function() {
-      var _ = [], len = arguments.length;
-      while ( len-- ) _[ len ] = arguments[ len ];
-
-      return arguments.length
-        ? (data = call.apply(void 0, _), this)
-        : (data.data ? data.data() : data);
-    };
-
-    shape.id = function(_) {
-      return arguments.length ? (id = _, this) : (id || 'axes-shape-' + index);
-    };
-
-    shape.gup = function(_) {
-      return arguments.length ? (call = _, this) : call;
-    };
-
-    return shape;
-  }
-
-  function symbol(path) {
-    var x = function (d) { return d[0]; }
-      , y = function (d) { return d[1]; }
-    ;
-
-    path.x = function(_) {
-      return arguments.length ? (x = _, this) : x;
-    };
-
-    path.y = function(_) {
-      return arguments.length ? (y = _, this) : y;
-    };
-
-    var $ = shape(path);
-    $.gup(
-      d3Gup.gupCompose(
-        d3Gup.gup()
-        .pre(translate)
-        .enter(translate)
-      , $.gup()
-      )
-    );
-    return $;
-
-    function translate($) {
-      return $.attr('transform', function (d) { return ("translate(" + (path.x()(d)) + " " + (path.y()(d)) + ")"); })
-    }
-  }
-
-  exports.axes = axes;
-  exports.axesPositionBottom = positionStart;
-  exports.axesPositionLeft = positionStart;
-  exports.axesPositionTop = positionEnd;
-  exports.axesPositionRight = positionEnd;
-  exports.axesPositionDefault = positionDefault;
-  exports.axesPosition = position;
-  exports.axesEmpty = empty;
-  exports.axesGrid = grid;
-  exports.axesShape = shape;
-  exports.axesSymbol = symbol;
-
-  Object.defineProperty(exports, '__esModule', { value: true });
-
-})));
-
-},{"d3-gup":24,"d3-selection":26}],21:[function(require,module,exports){
-arguments[4][5][0].apply(exports,arguments)
-},{"dup":5}],22:[function(require,module,exports){
-arguments[4][6][0].apply(exports,arguments)
-},{"dup":6}],23:[function(require,module,exports){
-arguments[4][8][0].apply(exports,arguments)
-},{"dup":8}],24:[function(require,module,exports){
-(function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-transition')) :
-  typeof define === 'function' && define.amd ? define(['exports', 'd3-selection', 'd3-transition'], factory) :
-  (factory((global.d3 = {}),global.d3,global.d3));
-}(this, (function (exports,d3Selection,d3Transition) { 'use strict';
-
-  function empty() {}
-
-  function gup() {
-    var pre = null
-      , exit = null
-      , enter = null
-      , post = null
-    ;
-    function gup(data) {
-      var more = [], len = arguments.length - 1;
-      while ( len-- > 0 ) more[ len ] = arguments[ len + 1 ];
-
-      if (data instanceof d3Selection.selection || data instanceof d3Transition.transition) {
-        return gup.apply(this, more)(data);
-      }
-      function _gup() {
-        var args = [], len = arguments.length;
-        while ( len-- ) args[ len ] = arguments[ len ];
-
-        var context = args.shift();
-        var shouldTransition = !!context.selection;
-        var selection = shouldTransition ? context.selection() : context;
-
-        var $pre = selection.data(data, more[0]);
-        if (pre && pre != empty) {
-          var preT = $pre;
-          if (shouldTransition && $pre.transition) {
-            preT = $pre.transition(context);
-          }
-          preT.call.apply(preT, [ pre ].concat( args ));
-        }
-
-        if (exit && exit != empty) {
-          var $exit = $pre.exit();
-          if (shouldTransition && $exit.transition) {
-            $exit = $exit.transition(context);
-          }
-          $exit.call.apply($exit, [ exit ].concat( args ));
-        }
-
-        var $enter = $pre.enter();
-        if (enter && enter != empty) {
-          $enter = enter.call.apply(enter, [ this, $enter ].concat( args ));
-        }
-
-        if (post && post != empty) {
-          var $post = $enter.merge($pre);
-          if (shouldTransition && $post.transition) {
-            $post = $post.transition(context);
-          }
-          $post.call.apply($post, [ post ].concat( args ));
-        }
-      }
-
-      _gup.data = function() {
-        var assign;
-
-        var _ = [], len = arguments.length;
-        while ( len-- ) _[ len ] = arguments[ len ];
-        return arguments.length ? ((assign = _, data = assign[0], more = assign.slice(1), assign), this) : [data ].concat( more);
-      };
-
-      return _gup;
-    }
-
-    gup.pre = function(_) {
-      return arguments.length ? (pre = _, this) : (pre || empty);
-    };
-
-    gup.exit = function(_) {
-      return arguments.length ? (exit = _, this) : (exit || empty);
-    };
-
-    gup.enter = function(_) {
-      return arguments.length ? (enter = _, this) : (enter || empty);
-    };
-
-    gup.post = function(_) {
-      return arguments.length ? (post = _, this) : (post || empty);
-    };
-
-    gup.update = function() {
-      var assign, assign$1, assign$2, assign$3;
-
-      var args = [], len = arguments.length;
-      while ( len-- ) args[ len ] = arguments[ len ];
-      switch (arguments.length) {
-        case 0: return [
-          pre || empty,
-          exit || empty,
-          enter || empty,
-          post || empty
-        ];
-        case 1:
-          (assign = args, pre = assign[0]);
-          break;
-        case 2:
-          (assign$1 = args, pre = assign$1[0], exit = assign$1[1]);
-          break;
-        case 3:
-          (assign$2 = args, pre = assign$2[0], exit = assign$2[1], enter = assign$2[2]);
-          break;
-        default:
-          (assign$3 = args, pre = assign$3[0], exit = assign$3[1], enter = assign$3[2], post = assign$3[3]);
-      }
-      return this;
-    };
-
-    return gup;
-  }
-
-  var nonEnumerableProps = /^(valueOf|isPrototypeOf|to(Locale)?String|propertyIsEnumerable|hasOwnProperty|pre|exit|enter|post|update)$/;
-
-  function comp(fns, name) {
-    var forward = name === "enter";
-    var f = function() {
-      var this$1 = this;
-      var args = [], len = arguments.length;
-      while ( len-- ) args[ len ] = arguments[ len ];
-
-      for (var i = 0, list = fns; i < list.length; i += 1) {
-        var f = list[i];
-
-        if (name in f && f[name] && (f = f[name]())) {
-          var result = f.apply(this$1, args);
-          if (forward) { args[0] = result; }
-        }
-      }
-      if (forward) { return result; }
-    };
-    return f;
-  }
-
-  function compose() {
-    var fns = [], len = arguments.length;
-    while ( len-- ) fns[ len ] = arguments[ len ];
-
-    var f = gup();
-
-    for (var i = 0, list = fns; i < list.length; i += 1) {
-      var source = list[i];
-
-      for (var k in source) {
-        if (!nonEnumerableProps.test(k)) {
-          f[k] = source[k];
-        }
-      }
-    }
-
-    fns = fns.reverse();
-    f.pre(comp(fns, "pre"));
-    f.exit(comp(fns, "exit"));
-    f.enter(comp(fns, "enter"));
-    f.post(comp(fns, "post"));
-
-    return f;
-  }
-
-  exports.gup = gup;
-  exports.gupEmpty = empty;
-  exports.gupCompose = compose;
-
-  Object.defineProperty(exports, '__esModule', { value: true });
-
-})));
-
-},{"d3-selection":26,"d3-transition":28}],25:[function(require,module,exports){
-arguments[4][11][0].apply(exports,arguments)
-},{"d3-color":21,"dup":11}],26:[function(require,module,exports){
-arguments[4][14][0].apply(exports,arguments)
-},{"dup":14}],27:[function(require,module,exports){
-arguments[4][18][0].apply(exports,arguments)
-},{"dup":18}],28:[function(require,module,exports){
-arguments[4][19][0].apply(exports,arguments)
-},{"d3-color":21,"d3-dispatch":22,"d3-ease":23,"d3-interpolate":25,"d3-selection":26,"d3-timer":27,"dup":19}],29:[function(require,module,exports){
-(function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
-  typeof define === 'function' && define.amd ? define(['exports'], factory) :
-  (factory((global.d3 = global.d3 || {})));
-}(this, (function (exports) { 'use strict';
-
-var nonEnumerableProps = /^(valueOf|isPrototypeOf|to(Locale)?String|propertyIsEnumerable|hasOwnProperty)$/;
-
-function compose() {
-  for (var i = 0, start = arguments.length, args = Array(start); i < start; i++) {
-    args[i] = arguments[i];
-  }
-
-  var f = function() {
-    for (var j = 0, jj = arguments.length, pass = Array(jj); j < jj; j++) {
-      pass[j] = arguments[j];
-    }
-
-    j = start;
-    while (j--) {
-      args[j].apply(this, pass);
-    }
-  };
-  for (i = start - 1; i >= 0; i--) {
-    var source = args[i];
-    for (var k in source) {
-      if (!nonEnumerableProps.test(k)) {
-        f[k] = source[k];
-      }
-    }
-  }
-  return f;
-}
-
-exports.compose = compose;
-
-Object.defineProperty(exports, '__esModule', { value: true });
-
-})));
-
-},{}],30:[function(require,module,exports){
-arguments[4][24][0].apply(exports,arguments)
-},{"d3-selection":35,"d3-transition":37,"dup":24}],31:[function(require,module,exports){
-arguments[4][5][0].apply(exports,arguments)
-},{"dup":5}],32:[function(require,module,exports){
-arguments[4][6][0].apply(exports,arguments)
-},{"dup":6}],33:[function(require,module,exports){
-arguments[4][8][0].apply(exports,arguments)
-},{"dup":8}],34:[function(require,module,exports){
-arguments[4][11][0].apply(exports,arguments)
-},{"d3-color":31,"dup":11}],35:[function(require,module,exports){
-arguments[4][14][0].apply(exports,arguments)
-},{"dup":14}],36:[function(require,module,exports){
-arguments[4][18][0].apply(exports,arguments)
-},{"dup":18}],37:[function(require,module,exports){
-arguments[4][19][0].apply(exports,arguments)
-},{"d3-color":31,"d3-dispatch":32,"d3-ease":33,"d3-interpolate":34,"d3-selection":35,"d3-timer":36,"dup":19}],38:[function(require,module,exports){
+},{"d3-color":6,"d3-dispatch":8,"d3-ease":10,"d3-interpolate":14,"d3-selection":17,"d3-timer":21}],23:[function(require,module,exports){
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
   typeof define === 'function' && define.amd ? define(['exports'], factory) :
