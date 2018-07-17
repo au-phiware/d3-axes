@@ -81,10 +81,10 @@ export function symbol(path) {
   let $ = shape(path);
   $.gup(
     gupCompose(
-      $.gup()
-    , gup()
+      gup()
       .pre(translate)
       .enter(translate)
+    , $.gup()
     )
   );
   return $;
