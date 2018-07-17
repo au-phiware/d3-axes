@@ -697,10 +697,10 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 },{}],3:[function(require,module,exports){
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-gup'), require('d3-compose')) :
-  typeof define === 'function' && define.amd ? define(['exports', 'd3-selection', 'd3-gup', 'd3-compose'], factory) :
-  (factory((global.d3 = {}),global.d3,global.d3,global.d3));
-}(this, (function (exports,d3,d3Gup,d3Compose) { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-gup')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'd3-selection', 'd3-gup'], factory) :
+  (factory((global.d3 = {}),global.d3,global.d3));
+}(this, (function (exports,d3,d3Gup) { 'use strict';
 
   function closestClassed(selection, className) {
     var closest = selection;
@@ -964,8 +964,9 @@ Object.defineProperty(exports, '__esModule', { value: true });
       , call = d3Gup.gup()
           .exit(function ($) { return $.remove(); })
           .enter(function ($) { return $.append("path")
+            .attr("d", path)
             .attr('class', 'shape'); })
-          .post(function ($) { return $.attr("d", path); })
+          .pre(function ($) { return $.attr("d", path); })
       , data = call([])
     ;
     function shape(axes, context) {
@@ -1039,13 +1040,19 @@ Object.defineProperty(exports, '__esModule', { value: true });
     };
 
     var $ = shape(path);
-    $.gup().post(
-      d3Compose.compose(
-        function ($) { return $.attr('transform', function (d) { return ("translate(" + (path.x()(d)) + " " + (path.y()(d)) + ")"); }); }
-      , $.gup().post()
+    $.gup(
+      d3Gup.gupCompose(
+        d3Gup.gup()
+        .pre(translate)
+        .enter(translate)
+      , $.gup()
       )
     );
     return $;
+
+    function translate($) {
+      return $.attr('transform', function (d) { return ("translate(" + (path.x()(d)) + " " + (path.y()(d)) + ")"); })
+    }
   }
 
   exports.axes = axes;
@@ -1064,7 +1071,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-compose":7,"d3-gup":13,"d3-selection":17}],4:[function(require,module,exports){
+},{"d3-gup":13,"d3-selection":17}],4:[function(require,module,exports){
 // https://d3js.org/d3-axis/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -3150,9 +3157,9 @@ Object.defineProperty(exports, '__esModule', { value: true });
       for (var i = 0, list = fns; i < list.length; i += 1) {
         var f = list[i];
 
-        if (name in f && f[name]) {
-          var result$1 = f[name].apply(this$1, args);
-          if (forward) { args[0] = result$1; }
+        if (name in f && f[name] && (f = f[name]())) {
+          var result = f.apply(this$1, args);
+          if (forward) { args[0] = result; }
         }
       }
       if (forward) { return result; }
