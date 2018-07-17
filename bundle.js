@@ -3151,10 +3151,11 @@ Object.defineProperty(exports, '__esModule', { value: true });
         var f = list[i];
 
         if (name in f && f[name]) {
-          var x = f[name].apply(this$1, args);
-          if (forward) { args[0] = x; }
+          var result$1 = f[name].apply(this$1, args);
+          if (forward) { args[0] = result$1; }
         }
       }
+      if (forward) { return result; }
     };
     return f;
   }
