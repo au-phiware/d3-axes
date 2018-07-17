@@ -1,6 +1,6 @@
 {
   "name": "d3-axes-demo",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "D3 plugin to manage pairs of axes.",
   "main": "index.js",
   "jsnext:main": "index",

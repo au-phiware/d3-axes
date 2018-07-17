@@ -3042,7 +3042,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
       if (data instanceof d3Selection.selection || data instanceof d3Transition.transition) {
         return gup.apply(this, more)(data);
       }
-      return function() {
+      function _gup() {
         var args = [], len = arguments.length;
         while ( len-- ) args[ len ] = arguments[ len ];
 
@@ -3080,22 +3080,32 @@ Object.defineProperty(exports, '__esModule', { value: true });
           $post.call.apply($post, [ post ].concat( args ));
         }
       }
+
+      _gup.data = function() {
+        var assign;
+
+        var _ = [], len = arguments.length;
+        while ( len-- ) _[ len ] = arguments[ len ];
+        return arguments.length ? ((assign = _, data = assign[0], more = assign.slice(1), assign), this) : [data ].concat( more);
+      };
+
+      return _gup;
     }
 
     gup.pre = function(_) {
-      return arguments.length ? (pre = _, gup) : (pre || empty);
+      return arguments.length ? (pre = _, this) : (pre || empty);
     };
 
     gup.exit = function(_) {
-      return arguments.length ? (exit = _, gup) : (exit || empty);
+      return arguments.length ? (exit = _, this) : (exit || empty);
     };
 
     gup.enter = function(_) {
-      return arguments.length ? (enter = _, gup) : (enter || empty);
+      return arguments.length ? (enter = _, this) : (enter || empty);
     };
 
     gup.post = function(_) {
-      return arguments.length ? (post = _, gup) : (post || empty);
+      return arguments.length ? (post = _, this) : (post || empty);
     };
 
     gup.update = function() {
@@ -3122,17 +3132,15 @@ Object.defineProperty(exports, '__esModule', { value: true });
         default:
           (assign$3 = args, pre = assign$3[0], exit = assign$3[1], enter = assign$3[2], post = assign$3[3]);
       }
-      return gup;
+      return this;
     };
 
     return gup;
   }
 
-  var nonEnumerableProps = /^(valueOf|isPrototypeOf|to(Locale)?String|propertyIsEnumerable|hasOwnProperty)$/;
+  var nonEnumerableProps = /^(valueOf|isPrototypeOf|to(Locale)?String|propertyIsEnumerable|hasOwnProperty|pre|exit|enter|post|update)$/;
 
   function comp(fns, name) {
-    fns = fns.reverse();
-
     var forward = name === "enter";
     var f = function() {
       var this$1 = this;
