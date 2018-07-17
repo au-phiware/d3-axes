@@ -14,7 +14,7 @@ export function shape(path) {
         .pre($ => $.attr("d", path))
     , data = call([])
   ;
-  function shape(axes, context, ...args) {
+  function shape(context, axes, ...args) {
     if (path.x) {
       path.x(scaler(axes.x().scale(), path.x()));
     }
