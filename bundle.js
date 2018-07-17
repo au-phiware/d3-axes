@@ -747,7 +747,35 @@ Object.defineProperty(exports, '__esModule', { value: true });
     };
   }
 
+  function empty(scale) {
+    function axis(context) {
+    }
+    axis.scale = function(_) {
+      return arguments.length ? (scale = _, this) : scale;
+    };
+    return axis;
+  }
+
   var positionDefault = positionOrigin;
+
+  var container = d3Gup.gup()
+    .enter(function ($, id) { return $.append("g")
+      .attr("id", id)
+      .attr("class", "axes"); })
+    .post(function ($, id, h, v) { return $
+      .attr("transform", ("translate(" + h + " " + v + ")")); }
+    )([null]);
+  var clipPath = d3Gup.gup()
+    .enter(function ($, id) { return $.append("clipPath")
+      .attr("id", (id + "-clip-path"))
+      .append("rect"); })
+    .post(function ($, id, h, v) { return $.select("rect")
+      .attr("width", h)
+      .attr("height", v); })([null]);
+  var axis = d3Gup.gup()
+    .enter(function ($, axis) { return $.append("g")
+      .attr("class", (axis + " axis")); })
+    .post(function ($, _, x, y) { return $.call(x, y); })([null]);
 
   var count = 0;
 
@@ -772,39 +800,13 @@ Object.defineProperty(exports, '__esModule', { value: true });
       y.scale().range([v, 0]);
 
       var id = axes.id();
-      var g = selection.select("g#" + id);
-      if (!g.size()) {
-        g = selection.append("g")
-          .attr("id", id)
-          .attr("class", "axes");
-        g.append("clipPath")
-          .attr("id", id + "-clip-path")
-          .append("rect");
-      }
-      g.select("#" + id + "-clip-path")
-        .select("rect")
-          .attr("width", h)
-          .attr("height", v);
+      context.selectAll(("g#" + id))
+        .call(container, id, paddingLeft, paddingTop);
 
-      if (context !== selection && g.transition) {
-        g = g.transition(context);
-      }
-
-      g.attr("transform", "translate(" + paddingLeft + "," + paddingTop + ")");
-      
-      var xAxis = g.select(".x.axis");
-      if (!xAxis.size()) {
-        xAxis = g.append('g')
-          .attr('class', 'x axis');
-      }
-      xAxis.call(x, y);
-
-      var yAxis = g.select(".y.axis");
-      if (!yAxis.size()) {
-        yAxis = g.append('g')
-          .attr('class', 'y axis');
-      }
-      yAxis.call(y, x);
+      var g = context.select(("g#" + id));
+      g.selectAll(("#" + id + "-clip-path")).call(clipPath, id, h, v);
+      g.selectAll(".x.axis").call(axis, "x", x, y);
+      g.selectAll(".y.axis").call(axis, "y", y, x);
     }
 
     axes.x = function(_) {
@@ -1053,6 +1055,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
   exports.axesPositionRight = positionEnd;
   exports.axesPositionDefault = positionDefault;
   exports.axesPosition = position;
+  exports.axesEmpty = empty;
   exports.axesGrid = grid;
   exports.axesShape = shape;
   exports.axesSymbol = symbol;
