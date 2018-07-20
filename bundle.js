@@ -859,6 +859,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
     var tickValues = null
       , tickArguments = null
       , line = d3Gup.gup()
+          .select(function ($) { return $.selectAll(".grid"); })
           .pre(function ($) { return ($.selection ? $.selection() : $)
             .order(); })
           .exit(function ($, x, y, size, position, p) { return $
@@ -888,7 +889,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
       if (!position.get(context.node())) {
         position.set(context.node(), p);
       }
-      context.selectAll(".grid")
+      context
         .call(line(values, scale), x, y, size, position, p);
       position.set(context.node(), p);
     }
@@ -935,10 +936,17 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
   var count$1 = 0;
 
+  var shapes = d3Gup.gup()
+    .select(function ($, id) { return $.select('.axes').selectAll(("g#" + id)); })
+    .enter(function ($, id) { return $.append('g')
+      .attr('id', id)
+      .attr('class', 'shapes'); })([null]);
+
   function shape(path) {
     var index = count$1++
       , id = null
       , call = d3Gup.gup()
+          .select(function ($) { return $.selectAll('path.shape'); })
           .exit(function ($) { return $.remove(); })
           .enter(function ($) { return $.append("path")
             .attr("d", path)
@@ -947,9 +955,10 @@ Object.defineProperty(exports, '__esModule', { value: true });
       , data = call([])
     ;
     function shape(context, axes) {
+      var ref;
+
       var args = [], len = arguments.length - 2;
       while ( len-- > 0 ) args[ len ] = arguments[ len + 2 ];
-
       if (path.x) {
         path.x(compose(axes.x().scale(), path.x()));
       }
@@ -957,26 +966,9 @@ Object.defineProperty(exports, '__esModule', { value: true });
         path.y(compose(axes.y().scale(), path.y()));
       }
 
-      axes.apply(this, [context].concat(args));
-
-      var shouldTransition = !!context.selection;
-      var selection = shouldTransition ? context.selection() : context;
-      selection = selection.select('.axes');
-
-      var id = shape.id();
-      var g = selection
-        .select('g#' + id);
-      if (g.empty()) {
-        g = selection.append('g')
-          .attr('id', id)
-          .attr('class', 'shapes');
-      }
-
-      g = g.selectAll('path.shape');
-      if (shouldTransition && g.transition) {
-        g = g.transition(context);
-      }
-      g.call(data);
+      axes.apply(this, [context ].concat( args));
+      (ref = shapes(context, shape.id()))
+        .call.apply(ref, [ data ].concat( args ));
     }
 
     shape.path = function(_) {
@@ -1056,12 +1048,14 @@ Object.defineProperty(exports, '__esModule', { value: true });
 }(this, (function (exports,d3Selection,d3Transition) { 'use strict';
 
   function empty() {}
+  function identity($) { return $; }
 
   function gup() {
     var pre = null
       , exit = null
       , enter = null
       , post = null
+      , select = null
     ;
     function gup(data) {
       var more = [], len = arguments.length - 1;
@@ -1077,6 +1071,9 @@ Object.defineProperty(exports, '__esModule', { value: true });
         var context = args.shift();
         var shouldTransition = !!context.selection;
         var selection = shouldTransition ? context.selection() : context;
+        if (select && select != identity) {
+          selection = select.call.apply(select, [ this, selection ].concat( args ));
+        }
 
         var $pre = selection.data(data, more[0]);
         if (pre && pre != empty) {
@@ -1096,17 +1093,19 @@ Object.defineProperty(exports, '__esModule', { value: true });
         }
 
         var $enter = $pre.enter();
-        if (enter && enter != empty) {
+        if (enter && enter != identity) {
           $enter = enter.call.apply(enter, [ this, $enter ].concat( args ));
         }
 
+        var $post = $enter.merge($pre);
+        if (shouldTransition && $post.transition) {
+          $post = $post.transition(context);
+        }
         if (post && post != empty) {
-          var $post = $enter.merge($pre);
-          if (shouldTransition && $post.transition) {
-            $post = $post.transition(context);
-          }
           $post.call.apply($post, [ post ].concat( args ));
         }
+
+        return $post;
       }
 
       _gup.data = function() {
@@ -1120,6 +1119,10 @@ Object.defineProperty(exports, '__esModule', { value: true });
       return _gup;
     }
 
+    gup.select = function(_) {
+      return arguments.length ? (select = _, this) : (select || identity);
+    };
+
     gup.pre = function(_) {
       return arguments.length ? (pre = _, this) : (pre || empty);
     };
@@ -1129,7 +1132,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
     };
 
     gup.enter = function(_) {
-      return arguments.length ? (enter = _, this) : (enter || empty);
+      return arguments.length ? (enter = _, this) : (enter || identity);
     };
 
     gup.post = function(_) {
@@ -1145,7 +1148,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
         case 0: return [
           pre || empty,
           exit || empty,
-          enter || empty,
+          enter || identity,
           post || empty
         ];
         case 1:
@@ -1166,10 +1169,10 @@ Object.defineProperty(exports, '__esModule', { value: true });
     return gup;
   }
 
-  var nonEnumerableProps = /^(valueOf|isPrototypeOf|to(Locale)?String|propertyIsEnumerable|hasOwnProperty|pre|exit|enter|post|update)$/;
+  var nonEnumerableProps = /^(valueOf|isPrototypeOf|to(Locale)?String|propertyIsEnumerable|hasOwnProperty|pre|exit|enter|post|update|select)$/;
 
   function comp(fns, name) {
-    var forward = name === "enter";
+    var forward = name === "enter" || name === "select";
     var f = function() {
       var this$1 = this;
       var args = [], len = arguments.length;
@@ -1178,7 +1181,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
       for (var i = 0, list = fns; i < list.length; i += 1) {
         var f = list[i];
 
-        if (name in f && f[name] && (f = f[name]())) {
+        if (name in f && f[name] && (f = f[name]()) && f !== empty && f !== identity) {
           var result = f.apply(this$1, args);
           if (forward) { args[0] = result; }
         }
@@ -1205,6 +1208,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
     }
 
     fns = fns.reverse();
+    f.select(comp(fns, "select"));
     f.pre(comp(fns, "pre"));
     f.exit(comp(fns, "exit"));
     f.enter(comp(fns, "enter"));
@@ -1215,6 +1219,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
   exports.gup = gup;
   exports.gupEmpty = empty;
+  exports.gupIdentity = identity;
   exports.gupCompose = compose;
 
   Object.defineProperty(exports, '__esModule', { value: true });
