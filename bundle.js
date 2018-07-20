@@ -1,8 +1,6 @@
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 'use strict';
 
-var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
-
 var _d3Selection = require('d3-selection');
 
 var d3 = _interopRequireWildcard(_d3Selection);
@@ -31,35 +29,14 @@ var _d3Wrap = require('d3-wrap');
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
-//import 'put-selector';
-//put.addNamespace('svg', d3.namespaces.svg);
-
-function guard(context, runner) {
-  var selection = void 0;
-  if (context.selection) {
-    selection = runner(context.selection());
-    if (selection.transition) {
-      return selection.transition(context);
-    }
-  } else {
-    selection = runner(context);
-  }
-  return selection;
-}
-
-function wrapSelection(context, selector) {
-  var wrapped = context.select(selector);
-  if (!wrapped.size()) {
-    var _selector$split = selector.split('.', 2),
-        _selector$split2 = _slicedToArray(_selector$split, 2),
-        tag = _selector$split2[0],
-        className = _selector$split2[1];
-
-    wrapped = guard(context, function ($) {
-      return $.append(tag).attr('class', className);
-    });
-  }
-  return wrapped;
+function grid(axis, name) {
+  var selector = "g." + name,
+      nest = (0, _d3Gup.gup)().enter(function ($) {
+    return $.append('g').classed(name, true);
+  })([null]);
+  return (0, _d3Wrap.wrapSelection)((0, _d3Axes.axesGrid)(axis), function ($) {
+    return nest($.selectAll(selector));
+  });
 }
 
 var x = function x(d) {
@@ -77,11 +54,6 @@ var x = function x(d) {
 }).post(function ($, offset, text) {
   return $.attr('transform', 'rotate(-90)').attr('y', offset).attr('dy', '.71em').style('text-anchor', 'end').text(text);
 })([null]),
-    grid = function grid(axis, name) {
-  return (0, _d3Wrap.wrap)((0, _d3Axes.axesGrid)(axis), function ($, grid, refAxis) {
-    return grid(wrapSelection($, 'g.' + name), refAxis);
-  });
-},
     plot = (0, _d3Wrap.wrap)((0, _d3Wrap.wrap)((0, _d3Axes.axes)((0, _d3Compose.compose)(_d3Axes.axesPositionBottom, xAxis), (0, _d3Compose.compose)(function ($) {
   return $.selectAll('.label').call(yLabel, 6, 'Velocity');
 }, yAxis, grid(yAxis, 'major'), grid(yAxis, 'minor').ticks(50))).padding(20, 20, 30, 50).width(document.documentElement.clientWidth).height(500).domain([0.01, 0.03], [-0.002, 0.002]), curve), icons);
@@ -103,7 +75,7 @@ plot(svg);
   }).call(plot);
 });
 
-},{"d3-array":2,"d3-axes":3,"d3-axis":4,"d3-compose":7,"d3-fetch":11,"d3-gup":13,"d3-scale":16,"d3-selection":17,"d3-shape":18,"d3-transition":22,"d3-wrap":23}],2:[function(require,module,exports){
+},{"d3-array":2,"d3-axes":3,"d3-axis":5,"d3-compose":8,"d3-fetch":12,"d3-gup":14,"d3-scale":17,"d3-selection":18,"d3-shape":19,"d3-transition":23,"d3-wrap":24}],2:[function(require,module,exports){
 // https://d3js.org/d3-array/ Version 1.2.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -886,6 +858,18 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
     var tickValues = null
       , tickArguments = null
+      , line = d3Gup.gup()
+          .pre(function ($) { return ($.selection ? $.selection() : $)
+            .order(); })
+          .exit(function ($, x, y, size, position, p) { return $
+            .call(gridLine(x, y, size, position, 0, p))
+            .remove(); })
+          .enter(function ($, x, y, size, position, p) { return $
+            .append("line")
+            .attr("class", "grid")
+            .call(gridLine(x, y, size, position, 0)); })
+          .post(function ($, x, y, size, position, p) { return $
+            .call(gridLine(x, y, size, position, 1, p)); })
       ;
     function grid(context, axis) {
       var selection = context.selection ? context.selection() : context
@@ -898,17 +882,6 @@ Object.defineProperty(exports, '__esModule', { value: true });
           : ["y", "x"];
       var x = ref[0];
       var y = ref[1];
-      var line = d3Gup.gup()
-            .pre(function ($) { return ($.selection ? $.selection() : $)
-              .order(); })
-            .exit(function ($) { return $
-              .call(gridLine(x, y, size, position, 0, p))
-              .remove(); })
-            .enter(function ($) { return $.append("line")
-              .attr("class", "grid")
-              .call(gridLine(x, y, size, position, 0)); })
-            .post(function ($) { return $.call(gridLine(x, y, size, position, 1, p)); })
-      ;
       range = basis.scale().range();
       var p = scale.copy().range([range[0] + 0.5, range[1] + 0.5]);
       if (scale.bandwidth) { p = center(p); }
@@ -916,7 +889,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
         position.set(context.node(), p);
       }
       context.selectAll(".grid")
-        .call(line(values, scale));
+        .call(line(values, scale), x, y, size, position, p);
       position.set(context.node(), p);
     }
 
@@ -933,6 +906,10 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
     grid.tickValues = function(_) {
       return arguments.length ? (tickValues = _ == null ? null : slice.call(_), this) : tickValues && tickValues.slice();
+    };
+
+    grid.gup = function(_) {
+      return arguments.length ? (line = _, this) : line;
     };
 
     return grid;
@@ -1071,7 +1048,180 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-gup":13,"d3-selection":17}],4:[function(require,module,exports){
+},{"d3-gup":4,"d3-selection":18}],4:[function(require,module,exports){
+(function (global, factory) {
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-transition')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'd3-selection', 'd3-transition'], factory) :
+  (factory((global.d3 = {}),global.d3,global.d3));
+}(this, (function (exports,d3Selection,d3Transition) { 'use strict';
+
+  function empty() {}
+
+  function gup() {
+    var pre = null
+      , exit = null
+      , enter = null
+      , post = null
+    ;
+    function gup(data) {
+      var more = [], len = arguments.length - 1;
+      while ( len-- > 0 ) more[ len ] = arguments[ len + 1 ];
+
+      if (data instanceof d3Selection.selection || data instanceof d3Transition.transition) {
+        return gup.apply(this, more)(data);
+      }
+      function _gup() {
+        var args = [], len = arguments.length;
+        while ( len-- ) args[ len ] = arguments[ len ];
+
+        var context = args.shift();
+        var shouldTransition = !!context.selection;
+        var selection = shouldTransition ? context.selection() : context;
+
+        var $pre = selection.data(data, more[0]);
+        if (pre && pre != empty) {
+          var preT = $pre;
+          if (shouldTransition && $pre.transition) {
+            preT = $pre.transition(context);
+          }
+          preT.call.apply(preT, [ pre ].concat( args ));
+        }
+
+        if (exit && exit != empty) {
+          var $exit = $pre.exit();
+          if (shouldTransition && $exit.transition) {
+            $exit = $exit.transition(context);
+          }
+          $exit.call.apply($exit, [ exit ].concat( args ));
+        }
+
+        var $enter = $pre.enter();
+        if (enter && enter != empty) {
+          $enter = enter.call.apply(enter, [ this, $enter ].concat( args ));
+        }
+
+        if (post && post != empty) {
+          var $post = $enter.merge($pre);
+          if (shouldTransition && $post.transition) {
+            $post = $post.transition(context);
+          }
+          $post.call.apply($post, [ post ].concat( args ));
+        }
+      }
+
+      _gup.data = function() {
+        var assign;
+
+        var _ = [], len = arguments.length;
+        while ( len-- ) _[ len ] = arguments[ len ];
+        return arguments.length ? ((assign = _, data = assign[0], more = assign.slice(1), assign), this) : [data ].concat( more);
+      };
+
+      return _gup;
+    }
+
+    gup.pre = function(_) {
+      return arguments.length ? (pre = _, this) : (pre || empty);
+    };
+
+    gup.exit = function(_) {
+      return arguments.length ? (exit = _, this) : (exit || empty);
+    };
+
+    gup.enter = function(_) {
+      return arguments.length ? (enter = _, this) : (enter || empty);
+    };
+
+    gup.post = function(_) {
+      return arguments.length ? (post = _, this) : (post || empty);
+    };
+
+    gup.update = function() {
+      var assign, assign$1, assign$2, assign$3;
+
+      var args = [], len = arguments.length;
+      while ( len-- ) args[ len ] = arguments[ len ];
+      switch (arguments.length) {
+        case 0: return [
+          pre || empty,
+          exit || empty,
+          enter || empty,
+          post || empty
+        ];
+        case 1:
+          (assign = args, pre = assign[0]);
+          break;
+        case 2:
+          (assign$1 = args, pre = assign$1[0], exit = assign$1[1]);
+          break;
+        case 3:
+          (assign$2 = args, pre = assign$2[0], exit = assign$2[1], enter = assign$2[2]);
+          break;
+        default:
+          (assign$3 = args, pre = assign$3[0], exit = assign$3[1], enter = assign$3[2], post = assign$3[3]);
+      }
+      return this;
+    };
+
+    return gup;
+  }
+
+  var nonEnumerableProps = /^(valueOf|isPrototypeOf|to(Locale)?String|propertyIsEnumerable|hasOwnProperty|pre|exit|enter|post|update)$/;
+
+  function comp(fns, name) {
+    var forward = name === "enter";
+    var f = function() {
+      var this$1 = this;
+      var args = [], len = arguments.length;
+      while ( len-- ) args[ len ] = arguments[ len ];
+
+      for (var i = 0, list = fns; i < list.length; i += 1) {
+        var f = list[i];
+
+        if (name in f && f[name] && (f = f[name]())) {
+          var result = f.apply(this$1, args);
+          if (forward) { args[0] = result; }
+        }
+      }
+      if (forward) { return result; }
+    };
+    return f;
+  }
+
+  function compose() {
+    var fns = [], len = arguments.length;
+    while ( len-- ) fns[ len ] = arguments[ len ];
+
+    var f = gup();
+
+    for (var i = 0, list = fns; i < list.length; i += 1) {
+      var source = list[i];
+
+      for (var k in source) {
+        if (!nonEnumerableProps.test(k)) {
+          f[k] = source[k];
+        }
+      }
+    }
+
+    fns = fns.reverse();
+    f.pre(comp(fns, "pre"));
+    f.exit(comp(fns, "exit"));
+    f.enter(comp(fns, "enter"));
+    f.post(comp(fns, "post"));
+
+    return f;
+  }
+
+  exports.gup = gup;
+  exports.gupEmpty = empty;
+  exports.gupCompose = compose;
+
+  Object.defineProperty(exports, '__esModule', { value: true });
+
+})));
+
+},{"d3-selection":18,"d3-transition":23}],5:[function(require,module,exports){
 // https://d3js.org/d3-axis/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -1266,7 +1416,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 // https://d3js.org/d3-collection/ Version 1.0.4. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -1485,7 +1635,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],6:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 // https://d3js.org/d3-color/ Version 1.2.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -2036,7 +2186,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
   typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -2077,7 +2227,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 // https://d3js.org/d3-dispatch/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -2174,7 +2324,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],9:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 // https://d3js.org/d3-dsv/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -2338,7 +2488,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 // https://d3js.org/d3-ease/ Version 1.0.3. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -2599,7 +2749,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 // https://d3js.org/d3-fetch/ Version 1.1.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-dsv')) :
@@ -2703,7 +2853,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-dsv":9}],12:[function(require,module,exports){
+},{"d3-dsv":10}],13:[function(require,module,exports){
 // https://d3js.org/d3-format/ Version 1.3.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -3027,7 +3177,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-transition')) :
   typeof define === 'function' && define.amd ? define(['exports', 'd3-selection', 'd3-transition'], factory) :
@@ -3079,13 +3229,15 @@ Object.defineProperty(exports, '__esModule', { value: true });
           $enter = enter.call.apply(enter, [ this, $enter ].concat( args ));
         }
 
+        var $post = $enter.merge($pre);
         if (post && post != empty) {
-          var $post = $enter.merge($pre);
           if (shouldTransition && $post.transition) {
             $post = $post.transition(context);
           }
           $post.call.apply($post, [ post ].concat( args ));
         }
+
+        return $post;
       }
 
       _gup.data = function() {
@@ -3200,7 +3352,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-selection":17,"d3-transition":22}],14:[function(require,module,exports){
+},{"d3-selection":18,"d3-transition":23}],15:[function(require,module,exports){
 // https://d3js.org/d3-interpolate/ Version 1.2.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-color')) :
@@ -3757,7 +3909,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":6}],15:[function(require,module,exports){
+},{"d3-color":7}],16:[function(require,module,exports){
 // https://d3js.org/d3-path/ Version 1.0.5. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -3900,7 +4052,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 // https://d3js.org/d3-scale/ Version 2.1.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-array'), require('d3-collection'), require('d3-interpolate'), require('d3-format'), require('d3-time'), require('d3-time-format')) :
@@ -4803,7 +4955,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-array":2,"d3-collection":5,"d3-format":12,"d3-interpolate":14,"d3-time":20,"d3-time-format":19}],17:[function(require,module,exports){
+},{"d3-array":2,"d3-collection":6,"d3-format":13,"d3-interpolate":15,"d3-time":21,"d3-time-format":20}],18:[function(require,module,exports){
 // https://d3js.org/d3-selection/ Version 1.3.0. Copyright 2018 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -5800,7 +5952,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 // https://d3js.org/d3-shape/ Version 1.2.0. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-path')) :
@@ -7737,7 +7889,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-path":15}],19:[function(require,module,exports){
+},{"d3-path":16}],20:[function(require,module,exports){
 // https://d3js.org/d3-time-format/ Version 2.1.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-time')) :
@@ -8427,7 +8579,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-time":20}],20:[function(require,module,exports){
+},{"d3-time":21}],21:[function(require,module,exports){
 // https://d3js.org/d3-time/ Version 1.0.8. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -8814,7 +8966,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 // https://d3js.org/d3-timer/ Version 1.0.7. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -8965,7 +9117,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 // https://d3js.org/d3-transition/ Version 1.1.1. Copyright 2017 Mike Bostock.
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('d3-selection'), require('d3-dispatch'), require('d3-timer'), require('d3-interpolate'), require('d3-color'), require('d3-ease')) :
@@ -9754,7 +9906,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 })));
 
-},{"d3-color":6,"d3-dispatch":8,"d3-ease":10,"d3-interpolate":14,"d3-selection":17,"d3-timer":21}],23:[function(require,module,exports){
+},{"d3-color":7,"d3-dispatch":9,"d3-ease":11,"d3-interpolate":15,"d3-selection":18,"d3-timer":22}],24:[function(require,module,exports){
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
   typeof define === 'function' && define.amd ? define(['exports'], factory) :
@@ -9798,7 +9950,19 @@ function wrap(f, wrapper) {
   });
 }
 
+function selection(f, wrapper) {
+  return wrap(f, function(context, f) {
+    for (var i = 2, ii = arguments.length, args = Array(ii - 1); i < ii; i++) {
+      args[i - 1] = arguments[i];
+    }
+    args[0] = context;
+    args[0] = wrapper.apply(this, args);
+    return f.apply(this, args);
+  });
+}
+
 exports.wrap = wrap;
+exports.wrapSelection = selection;
 
 Object.defineProperty(exports, '__esModule', { value: true });
 
