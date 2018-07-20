@@ -8,32 +8,18 @@ import { extent } from "d3-array";
 import { line, symbol as circle } from "d3-shape";
 import { axes, axesPositionBottom, axesGrid, axesShape as shape, axesSymbol as symbol } from 'd3-axes';
 import { compose } from 'd3-compose';
-import { wrap } from 'd3-wrap';
+import { wrap, wrapSelection } from 'd3-wrap';
 
-//import 'put-selector';
-//put.addNamespace('svg', d3.namespaces.svg);
-
-function guard(context, runner) {
-  let selection;
-  if (context.selection) {
-    selection = runner(context.selection());
-    if (selection.transition) {
-      return selection.transition(context);
-    }
-  } else {
-    selection = runner(context);
-  }
-  return selection;
-}
-
-function wrapSelection(context, selector) {
-  let wrapped = context.select(selector);
-  if (!wrapped.size()) {
-    let [ tag, className ] = selector.split('.', 2);
-    wrapped = guard(context, $ => $.append(tag)
-      .attr('class', className));
-  }
-  return wrapped;
+function grid(axis, name) {
+  let selector = "g." + name
+    , nest = gup()
+      .enter($ => $.append('g')
+        .classed(name, true))([null])
+  ;
+  return wrapSelection(
+      axesGrid(axis)
+    , $ => nest($.selectAll(selector))
+  );
 }
 
 let x = d => +d.t
@@ -52,9 +38,6 @@ let x = d => +d.t
         .attr('dy', '.71em')
         .style('text-anchor', 'end')
         .text(text))([null])
-  , grid = (axis, name) => wrap(
-      axesGrid(axis),
-      ($, grid, refAxis) => grid(wrapSelection($, `g.${name}`), refAxis))
   , plot = wrap(
       wrap(
         axes(
