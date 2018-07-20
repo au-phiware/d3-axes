@@ -7,6 +7,7 @@ export function shape(path) {
   let index = count++
     , id = null
     , call = gup()
+        .select($ => $.selectAll('path.shape'))
         .exit($ => $.remove())
         .enter($ => $.append("path")
           .attr("d", path)
@@ -37,7 +38,6 @@ export function shape(path) {
         .attr('class', 'shapes');
     }
 
-    g = g.selectAll('path.shape')
     if (shouldTransition && g.transition) {
       g = g.transition(context);
     }

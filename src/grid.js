@@ -24,6 +24,7 @@ export function grid(basis) {
   let tickValues = null
     , tickArguments = null
     , line = gup()
+        .select($ => $.selectAll(".grid"))
         .pre($ => ($.selection ? $.selection() : $)
           .order())
         .exit(($, x, y, size, position, p) => $
@@ -52,7 +53,7 @@ export function grid(basis) {
     if (!position.get(context.node())) {
       position.set(context.node(), p);
     }
-    context.selectAll(".grid")
+    context
       .call(line(values, scale), x, y, size, position, p);
     position.set(context.node(), p);
   }
