@@ -23,6 +23,18 @@ export function grid(basis) {
 
   let tickValues = null
     , tickArguments = null
+    , line = gup()
+        .pre($ => ($.selection ? $.selection() : $)
+          .order())
+        .exit(($, x, y, size, position, p) => $
+          .call(gridLine(x, y, size, position, 0, p))
+          .remove())
+        .enter(($, x, y, size, position, p) => $
+          .append("line")
+          .attr("class", "grid")
+          .call(gridLine(x, y, size, position, 0)))
+        .post(($, x, y, size, position, p) => $
+          .call(gridLine(x, y, size, position, 1, p)))
     ;
   function grid(context, axis) {
     let selection = context.selection ? context.selection() : context
@@ -33,16 +45,6 @@ export function grid(basis) {
       , [x, y] = closestClassed(selection, 'axis').classed("y")
         ? ["x", "y"]
         : ["y", "x"]
-      , line = gup()
-          .pre($ => ($.selection ? $.selection() : $)
-            .order())
-          .exit($ => $
-            .call(gridLine(x, y, size, position, 0, p))
-            .remove())
-          .enter($ => $.append("line")
-            .attr("class", "grid")
-            .call(gridLine(x, y, size, position, 0)))
-          .post($ => $.call(gridLine(x, y, size, position, 1, p)))
     ;
     range = basis.scale().range();
     var p = scale.copy().range([range[0] + 0.5, range[1] + 0.5]);
@@ -51,7 +53,7 @@ export function grid(basis) {
       position.set(context.node(), p);
     }
     context.selectAll(".grid")
-      .call(line(values, scale));
+      .call(line(values, scale), x, y, size, position, p);
     position.set(context.node(), p);
   }
 
@@ -66,6 +68,10 @@ export function grid(basis) {
   grid.tickValues = function(_) {
     return arguments.length ? (tickValues = _ == null ? null : slice.call(_), this) : tickValues && tickValues.slice();
   };
+
+  grid.gup = function(_) {
+    return arguments.length ? (line = _, this) : line;
+  }
 
   return grid;
 }
