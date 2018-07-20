@@ -3,6 +3,12 @@ import { compose as scaler } from './scaler';
 
 let count = 0;
 
+const shapes = gup()
+  .select(($, id) => $.select('.axes').selectAll(`g#${id}`))
+  .enter(($, id) => $.append('g')
+    .attr('id', id)
+    .attr('class', 'shapes'))([null]);
+
 export function shape(path) {
   let index = count++
     , id = null
@@ -23,25 +29,9 @@ export function shape(path) {
       path.y(scaler(axes.y().scale(), path.y()));
     }
 
-    axes.apply(this, [context].concat(args));
-
-    let shouldTransition = !!context.selection;
-    let selection = shouldTransition ? context.selection() : context;
-    selection = selection.select('.axes');
-
-    let id = shape.id();
-    let g = selection
-      .select('g#' + id);
-    if (g.empty()) {
-      g = selection.append('g')
-        .attr('id', id)
-        .attr('class', 'shapes');
-    }
-
-    if (shouldTransition && g.transition) {
-      g = g.transition(context);
-    }
-    g.call(data);
+    axes.apply(this, [context, ...args]);
+    shapes(context, shape.id())
+      .call(data, ...args);
   }
 
   shape.path = function(_) {
