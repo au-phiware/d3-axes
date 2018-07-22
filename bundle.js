@@ -740,8 +740,8 @@ Object.defineProperty(exports, '__esModule', { value: true });
   var clipPath = d3Gup.gup()
     .enter(function ($, id) { return $.append("clipPath")
       .attr("id", (id + "-clip-path"))
-      .append("rect"); })
-    .post(function ($, id, h, v) { return $.select("rect")
+      .call(function ($) { return $.append("rect"); }); })
+    .post(function ($, id, h, v) { return $.select('rect')
       .attr("width", h)
       .attr("height", v); })([null]);
   var axis = d3Gup.gup()
