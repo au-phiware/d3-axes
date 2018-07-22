@@ -40,7 +40,7 @@ export function shape(path) {
 
   shape.data = function(..._) {
     return arguments.length
-      ? (data = call(..._), this)
+      ? (data.data ? data.data(..._) : data = call(..._), this)
       : (data.data ? data.data() : data);
   }
 
@@ -49,7 +49,7 @@ export function shape(path) {
   }
 
   shape.gup = function(_) {
-    return arguments.length ? (call = _, this) : call;
+    return arguments.length ? (call = _, data = call(...shape.data()), this) : call;
   }
 
   return shape;
