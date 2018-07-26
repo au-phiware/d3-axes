@@ -22,11 +22,24 @@ export function shape(path) {
     , data = call([])
   ;
   function shape(context, axes, ...args) {
-    if (path.x) {
-      path.x(scaler(axes.x().scale(), path.x()));
+    let f;
+
+    if (path.x0 && (f = path.x0())) {
+      path.x0(scaler(axes.x().scale(), f));
+      if (path.x1 && (f = path.x1())) {
+        path.x1(scaler(axes.x().scale(), f));
+      }
+    } else if (path.x && (f = path.x())) {
+      path.x(scaler(axes.x().scale(), f));
     }
-    if (path.y) {
-      path.y(scaler(axes.y().scale(), path.y()));
+
+    if (path.y0 && (f = path.y0())) {
+      path.y0(scaler(axes.y().scale(), f));
+      if (path.y1 && (f = path.y1())) {
+        path.y1(scaler(axes.y().scale(), f));
+      }
+    } else if (path.y && (f = path.y())) {
+      path.y(scaler(axes.y().scale(), f));
     }
 
     axes.apply(this, [context, ...args]);
