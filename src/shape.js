@@ -1,17 +1,20 @@
-import { gup, gupCompose } from 'd3-gup';
+import { gup, gupCompose, gupEmpty } from 'd3-gup';
 import { compose as scaler } from './scaler';
 
 let count = 0;
 
 const shapes = gup()
   .select(($, id) => $.select('.axes').selectAll(`g#${id}`))
-  .enter(($, id) => $.append('g')
+  .enter(($, id, classList, setup) => $.append('g')
     .attr('id', id)
-    .attr('class', 'shapes'))([null]);
+    .attr('class', classList.concat('shapes').join(' '))
+    .call(setup))([null]);
 
 export function shape(path) {
   let index = count++
     , id = null
+    , classList = null
+    , setup = null
     , call = gup()
         .select($ => $.selectAll('path.shape'))
         .exit($ => $.remove())
@@ -43,7 +46,7 @@ export function shape(path) {
     }
 
     axes.apply(this, [context, ...args]);
-    shapes(context, shape.id())
+    shapes(context, shape.id(), shape.classList(), shape.setup())
       .call(data, ...args);
   }
 
@@ -59,6 +62,14 @@ export function shape(path) {
 
   shape.id = function(_) {
     return arguments.length ? (id = _, this) : (id || 'axes-shape-' + index);
+  }
+
+  shape.classList = function(_) {
+    return arguments.length ? (classList = _, this) : (classList || []);
+  }
+
+  shape.setup = function(_) {
+    return arguments.length ? (setup = _, this) : (setup || gupEmpty);
   }
 
   shape.gup = function(_) {
