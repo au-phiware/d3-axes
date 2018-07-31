@@ -2,6 +2,8 @@ import { local } from 'd3-selection';
 import { gup } from 'd3-gup';
 import { closestClassed } from './closest';
 
+const slice = Array.prototype.slice;
+
 function center(scale) {
   var offset = scale.bandwidth() / 2;
   if (scale.round()) offset = Math.round(offset);
