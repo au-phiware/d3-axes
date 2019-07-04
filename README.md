@@ -1,3 +1,6 @@
+
+[![Join the chat at https://gitter.im/d3-axes/Lobby](https://badges.gitter.im/d3-axes/Lobby.svg)](https://gitter.im/d3-axes/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 The aim of d3-axes is to remove some of the common tasks when creating charts
 with [d3][d3]; and to do this in a way that complements D3 itself.
 
